@@ -162,7 +162,7 @@ export function ActivityFeed({ delay = 0 }: { delay?: number }) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay, ease: "easeOut" }}
-      className="rounded-xl border border-border bg-card shadow-sm flex flex-col h-full scroll-mt-20"
+      className="glass rounded-2xl flex flex-col h-full scroll-mt-20"
     >
       <header className="flex items-start justify-between p-5 pb-3">
         <div>

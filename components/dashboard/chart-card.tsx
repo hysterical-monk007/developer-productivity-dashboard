@@ -24,7 +24,7 @@ export function ChartCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay, ease: "easeOut" }}
       className={cn(
-        "rounded-xl border border-border bg-card p-5 shadow-sm",
+        "glass rounded-2xl p-6 scroll-mt-20",
         className
       )}
     >

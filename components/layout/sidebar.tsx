@@ -75,14 +75,14 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "hidden md:flex shrink-0 flex-col border-r border-border bg-card/40 backdrop-blur-xl transition-all duration-300",
+        "hidden md:flex shrink-0 flex-col border-r border-foreground/[0.08] bg-card/30 backdrop-blur-2xl transition-all duration-300 relative z-10",
         collapsed ? "w-[68px]" : "w-[240px]"
       )}
     >
       <div className="flex h-14 items-center gap-2 border-b border-border px-4">
         <Link href="/dashboard" className="flex items-center gap-2 min-w-0">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 shadow shadow-violet-500/30">
-            <Zap className="h-4 w-4 text-white" strokeWidth={2.5} />
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-emerald-400 to-cyan-400 shadow shadow-emerald-500/40">
+            <Zap className="h-4 w-4 text-emerald-950" strokeWidth={2.5} />
           </div>
           {!collapsed && (
             <span className="text-sm font-semibold tracking-tight">Pulse</span>
@@ -134,7 +134,7 @@ export function Sidebar() {
                       <>
                         <span>{item.label}</span>
                         {item.badge && (
-                          <span className="ml-auto inline-flex items-center rounded-full bg-violet-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-violet-400">
+                          <span className="ml-auto inline-flex items-center rounded-full bg-emerald-400/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-300">
                             {item.badge}
                           </span>
                         )}

@@ -28,13 +28,13 @@ export function LoginCard() {
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="relative overflow-hidden rounded-2xl border border-border bg-card/60 backdrop-blur-xl p-8 shadow-2xl"
       >
-        <div className="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-violet-500/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-sky-500/20 blur-3xl" />
+        <div className="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-emerald-500/25 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-rose-500/20 blur-3xl" />
 
         <div className="relative">
           <div className="flex items-center gap-2 mb-8">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 shadow-lg shadow-violet-500/30">
-              <Zap className="h-5 w-5 text-white" strokeWidth={2.5} />
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-400 to-cyan-400 shadow-lg shadow-emerald-500/40">
+              <Zap className="h-5 w-5 text-emerald-950" strokeWidth={2.5} />
             </div>
             <span className="text-lg font-semibold tracking-tight">Pulse</span>
             <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-border bg-background/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
@@ -78,21 +78,21 @@ export function LoginCard() {
 
           <div className="mt-7 grid grid-cols-3 gap-3 text-xs">
             <div className="flex flex-col items-start gap-1 rounded-lg border border-border/60 bg-background/40 p-3">
-              <Sparkles className="h-3.5 w-3.5 text-violet-400" />
+              <Sparkles className="h-3.5 w-3.5 text-emerald-300" />
               <span className="font-medium">AI insights</span>
               <span className="text-muted-foreground text-[10px]">
                 Auto-generated
               </span>
             </div>
             <div className="flex flex-col items-start gap-1 rounded-lg border border-border/60 bg-background/40 p-3">
-              <GitBranch className="h-3.5 w-3.5 text-sky-400" />
+              <GitBranch className="h-3.5 w-3.5 text-rose-300" />
               <span className="font-medium">Team view</span>
               <span className="text-muted-foreground text-[10px]">
                 Leaderboard
               </span>
             </div>
             <div className="flex flex-col items-start gap-1 rounded-lg border border-border/60 bg-background/40 p-3">
-              <Zap className="h-3.5 w-3.5 text-emerald-400" />
+              <Zap className="h-3.5 w-3.5 text-cyan-300" />
               <span className="font-medium">Realtime</span>
               <span className="text-muted-foreground text-[10px]">
                 Activity feed

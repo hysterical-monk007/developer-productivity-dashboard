@@ -41,9 +41,9 @@ export function MetricCard({ metric, index = 0 }: { metric: Metric; index?: numb
     metric.trend === "flat";
   const trendChip = isGood
     ? metric.trend === "flat"
-      ? "border-border bg-muted text-muted-foreground"
-      : "border-emerald-500/20 bg-emerald-500/10 text-emerald-500"
-    : "border-rose-500/20 bg-rose-500/10 text-rose-500";
+      ? "border-foreground/10 bg-foreground/5 text-muted-foreground"
+      : "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
+    : "border-rose-400/30 bg-rose-400/10 text-rose-300";
 
   const TrendIcon =
     metric.trend === "up"
@@ -57,8 +57,8 @@ export function MetricCard({ metric, index = 0 }: { metric: Metric; index?: numb
   const anomalyHigh = anomaly && Math.abs(anomaly.sigma) >= 2;
   const anomalyClass = anomaly
     ? anomalyHigh
-      ? "border-violet-500/40 bg-violet-500/15 text-violet-300"
-      : "border-amber-500/30 bg-amber-500/10 text-amber-400"
+      ? "border-emerald-400/40 bg-emerald-400/15 text-emerald-200"
+      : "border-amber-400/30 bg-amber-400/10 text-amber-300"
     : "";
 
   return (
@@ -66,20 +66,20 @@ export function MetricCard({ metric, index = 0 }: { metric: Metric; index?: numb
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.05, ease: "easeOut" }}
-      whileHover={{ y: -2 }}
-      className="group relative overflow-hidden rounded-xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-lg"
+      whileHover={{ y: -3 }}
+      className="group glass relative overflow-hidden rounded-2xl p-5 transition-shadow hover:shadow-2xl"
     >
       <div
         className={cn(
-          "pointer-events-none absolute -top-12 -right-12 h-32 w-32 rounded-full opacity-70 blur-2xl bg-gradient-to-br",
+          "pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full opacity-80 blur-3xl bg-gradient-to-br",
           metric.accent
         )}
       />
 
-      <div className="relative flex items-start justify-between mb-3">
+      <div className="relative flex items-start justify-between mb-4">
         <div
           className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br",
+            "flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br ring-1 ring-foreground/10",
             metric.accent
           )}
         >
@@ -97,9 +97,11 @@ export function MetricCard({ metric, index = 0 }: { metric: Metric; index?: numb
       </div>
 
       <div className="relative">
-        <p className="text-xs font-medium text-muted-foreground">{metric.label}</p>
-        <div className="mt-1 flex items-baseline gap-2 flex-wrap">
-          <span className="text-2xl font-semibold tracking-tight tabular-nums">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          {metric.label}
+        </p>
+        <div className="mt-2 flex items-baseline gap-2 flex-wrap">
+          <span className="font-display text-3xl font-semibold tracking-tight tabular-nums">
             {metric.value}
           </span>
           {metric.sub && (
@@ -112,7 +114,7 @@ export function MetricCard({ metric, index = 0 }: { metric: Metric; index?: numb
               <TooltipTrigger asChild>
                 <span
                   className={cn(
-                    "mt-1.5 inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold cursor-help tabular-nums",
+                    "mt-2 inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold cursor-help tabular-nums",
                     anomalyClass
                   )}
                 >
@@ -135,12 +137,12 @@ export function MetricCard({ metric, index = 0 }: { metric: Metric; index?: numb
         )}
       </div>
 
-      <div className="relative mt-3 h-10 -mx-1">
+      <div className="relative mt-4 h-12 -mx-1">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={metric.sparkline} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id={`spark-${metric.key}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={metric.sparkColor} stopOpacity={0.45} />
+                <stop offset="0%" stopColor={metric.sparkColor} stopOpacity={0.5} />
                 <stop offset="100%" stopColor={metric.sparkColor} stopOpacity={0} />
               </linearGradient>
             </defs>
@@ -148,7 +150,7 @@ export function MetricCard({ metric, index = 0 }: { metric: Metric; index?: numb
               type="monotone"
               dataKey="v"
               stroke={metric.sparkColor}
-              strokeWidth={1.75}
+              strokeWidth={2}
               fill={`url(#spark-${metric.key})`}
               isAnimationActive={false}
             />

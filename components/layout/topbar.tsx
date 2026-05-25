@@ -45,7 +45,7 @@ export function Topbar() {
   const firstName = displayName.split(" ")[0];
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background/70 backdrop-blur-xl px-4 lg:px-6">
+    <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-3 border-b border-foreground/[0.06] bg-background/40 backdrop-blur-2xl px-4 lg:px-6">
       <div className="flex-1 max-w-md relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input

@@ -29,7 +29,7 @@ function ChartTooltip({ active, payload, label }: any) {
       <div className="font-medium text-foreground flex items-center gap-1.5">
         {label}
         {isForecast && (
-          <span className="inline-flex items-center gap-0.5 rounded border border-violet-500/30 bg-violet-500/10 px-1 py-px text-[9px] font-semibold text-violet-300">
+          <span className="inline-flex items-center gap-0.5 rounded border border-rose-400/30 bg-rose-400/10 px-1 py-px text-[9px] font-semibold text-rose-300">
             <Sparkles className="h-2 w-2" />
             forecast
           </span>
@@ -38,7 +38,7 @@ function ChartTooltip({ active, payload, label }: any) {
       {isForecast ? (
         <div className="mt-1 space-y-0.5 text-muted-foreground">
           <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-violet-400" />
+            <span className="h-2 w-2 rounded-full bg-rose-400" />
             Predicted: <span className="text-foreground font-medium">{p.predicted}</span>
           </div>
           <div className="text-[10px]">
@@ -47,7 +47,7 @@ function ChartTooltip({ active, payload, label }: any) {
         </div>
       ) : (
         <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
-          <span className="h-2 w-2 rounded-full bg-sky-400" />
+          <span className="h-2 w-2 rounded-full bg-emerald-400" />
           {p.commits} commits
         </div>
       )}
@@ -125,7 +125,7 @@ export function CommitsChart({ delay = 0 }: { delay?: number }) {
               live
             </span>
           )}
-          <span className="hidden md:inline-flex items-center gap-1 rounded-md border border-violet-500/30 bg-violet-500/[0.08] px-1.5 py-0.5 text-[10px] font-semibold text-violet-300">
+          <span className="hidden md:inline-flex items-center gap-1 rounded-md border border-rose-400/30 bg-rose-400/10 px-1.5 py-0.5 text-[10px] font-semibold text-rose-300">
             <Sparkles className="h-2.5 w-2.5" />
             forecast {Math.round(summary.modelAccuracy * 100)}% R²
           </span>
@@ -146,8 +146,8 @@ export function CommitsChart({ delay = 0 }: { delay?: number }) {
                 <stop offset="100%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="ci-grad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#a78bfa" stopOpacity={0.25} />
-                <stop offset="100%" stopColor="#a78bfa" stopOpacity={0} />
+                <stop offset="0%" stopColor="#fb7185" stopOpacity={0.25} />
+                <stop offset="100%" stopColor="#fb7185" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
@@ -170,13 +170,13 @@ export function CommitsChart({ delay = 0 }: { delay?: number }) {
 
             <ReferenceLine
               x={todayLabel}
-              stroke="#a78bfa"
+              stroke="#fb7185"
               strokeDasharray="2 3"
               strokeOpacity={0.6}
               label={{
                 value: "today",
                 position: "top",
-                fill: "#a78bfa",
+                fill: "#fb7185",
                 fontSize: 9,
               }}
             />
@@ -211,7 +211,7 @@ export function CommitsChart({ delay = 0 }: { delay?: number }) {
             <Line
               type="monotone"
               dataKey="predicted"
-              stroke="#a78bfa"
+              stroke="#fb7185"
               strokeWidth={2}
               strokeDasharray="4 4"
               dot={false}
@@ -225,7 +225,7 @@ export function CommitsChart({ delay = 0 }: { delay?: number }) {
       <div className="mt-3 flex items-center justify-between gap-3 text-[11px]">
         <div className="flex items-center gap-3 text-muted-foreground">
           <div className="flex items-center gap-1.5">
-            <span className="h-0.5 w-3 rounded-full bg-sky-400" />
+            <span className="h-0.5 w-3 rounded-full bg-emerald-400" />
             <span>actual</span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -233,13 +233,13 @@ export function CommitsChart({ delay = 0 }: { delay?: number }) {
               className="h-0.5 w-3 rounded-full"
               style={{
                 backgroundImage:
-                  "repeating-linear-gradient(90deg,#a78bfa 0 3px,transparent 3px 6px)",
+                  "repeating-linear-gradient(90deg,#fb7185 0 3px,transparent 3px 6px)",
               }}
             />
             <span>predicted</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="h-2 w-3 rounded-sm bg-violet-500/20" />
+            <span className="h-2 w-3 rounded-sm bg-rose-500/25" />
             <span>95% CI</span>
           </div>
         </div>

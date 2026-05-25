@@ -33,30 +33,30 @@ const CATEGORY_META: Record<
   productivity: {
     icon: Flame,
     label: "Productivity",
-    ring: "border-rose-500/20 hover:border-rose-500/40",
-    iconBg: "bg-rose-500/15",
-    iconColor: "text-rose-400",
+    ring: "ring-emerald-400/20 hover:ring-emerald-400/40",
+    iconBg: "bg-emerald-400/15",
+    iconColor: "text-emerald-300",
   },
   trend: {
     icon: TrendingUp,
     label: "Trend",
-    ring: "border-emerald-500/20 hover:border-emerald-500/40",
-    iconBg: "bg-emerald-500/15",
-    iconColor: "text-emerald-400",
+    ring: "ring-cyan-400/20 hover:ring-cyan-400/40",
+    iconBg: "bg-cyan-400/15",
+    iconColor: "text-cyan-300",
   },
   warning: {
     icon: AlertTriangle,
     label: "Watch",
-    ring: "border-amber-500/20 hover:border-amber-500/40",
-    iconBg: "bg-amber-500/15",
-    iconColor: "text-amber-400",
+    ring: "ring-amber-400/20 hover:ring-amber-400/40",
+    iconBg: "bg-amber-400/15",
+    iconColor: "text-amber-300",
   },
   suggestion: {
     icon: Lightbulb,
     label: "Suggestion",
-    ring: "border-sky-500/20 hover:border-sky-500/40",
-    iconBg: "bg-sky-500/15",
-    iconColor: "text-sky-400",
+    ring: "ring-rose-400/20 hover:ring-rose-400/40",
+    iconBg: "bg-rose-400/15",
+    iconColor: "text-rose-300",
   },
 };
 
@@ -67,9 +67,9 @@ type Resp = {
 };
 
 function confidenceColor(c: number): string {
-  if (c >= 0.9) return "border-emerald-500/30 bg-emerald-500/10 text-emerald-400";
-  if (c >= 0.75) return "border-sky-500/30 bg-sky-500/10 text-sky-400";
-  return "border-amber-500/30 bg-amber-500/10 text-amber-400";
+  if (c >= 0.9) return "border-emerald-400/30 bg-emerald-400/10 text-emerald-300";
+  if (c >= 0.75) return "border-cyan-400/30 bg-cyan-400/10 text-cyan-300";
+  return "border-amber-400/30 bg-amber-400/10 text-amber-300";
 }
 
 export function InsightsPanel({ delay = 0 }: { delay?: number }) {
@@ -111,16 +111,16 @@ export function InsightsPanel({ delay = 0 }: { delay?: number }) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay, ease: "easeOut" }}
-      className="relative overflow-hidden rounded-xl border border-border bg-card p-5 shadow-sm scroll-mt-20"
+      className="glass-strong border-gradient relative overflow-hidden rounded-2xl p-6 scroll-mt-20"
     >
-      <div className="pointer-events-none absolute -top-24 -right-24 h-56 w-56 rounded-full bg-violet-500/15 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 -left-24 h-56 w-56 rounded-full bg-fuchsia-500/10 blur-3xl" />
+      <div className="pointer-events-none absolute -top-24 -right-24 h-56 w-56 rounded-full bg-emerald-500/15 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -left-24 h-56 w-56 rounded-full bg-rose-500/12 blur-3xl" />
 
       <header className="relative flex items-start justify-between mb-3">
         <div>
           <h3 className="text-sm font-semibold tracking-tight flex items-center gap-1.5">
-            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 shadow shadow-violet-500/30">
-              <Sparkles className="h-3 w-3 text-white" strokeWidth={2.5} />
+            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-emerald-400 to-cyan-400 shadow shadow-emerald-500/30">
+              <Sparkles className="h-3 w-3 text-emerald-950" strokeWidth={2.5} />
             </span>
             AI insights
             {data && (
@@ -225,7 +225,7 @@ export function InsightsPanel({ delay = 0 }: { delay?: number }) {
                     transition={{ duration: 0.35, delay: i * 0.06 }}
                     whileHover={{ y: -2 }}
                     className={cn(
-                      "group relative rounded-lg border bg-background/40 p-4 transition-colors",
+                      "group relative rounded-xl bg-background/30 p-4 ring-1 transition-all backdrop-blur-sm",
                       meta.ring
                     )}
                   >

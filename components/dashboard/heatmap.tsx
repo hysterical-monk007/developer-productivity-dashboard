@@ -94,7 +94,7 @@ export function Heatmap({ delay = 0 }: { delay?: number }) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay, ease: "easeOut" }}
-      className="rounded-xl border border-border bg-card p-5 shadow-sm scroll-mt-20"
+      className="glass rounded-2xl p-6 scroll-mt-20"
     >
       <header className="flex items-start justify-between mb-4">
         <div>

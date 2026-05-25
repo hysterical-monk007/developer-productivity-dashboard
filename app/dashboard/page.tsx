@@ -1,7 +1,7 @@
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { AuthGuard } from "@/components/dashboard/auth-guard";
-import { PageHeader } from "@/components/dashboard/page-header";
+import { Hero } from "@/components/dashboard/hero";
 import { GithubBanner } from "@/components/dashboard/github-banner";
 import { MetricRow } from "@/components/dashboard/metric-row";
 import { CommitsChart } from "@/components/dashboard/commits-chart";
@@ -12,17 +12,19 @@ import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { Leaderboard } from "@/components/dashboard/leaderboard";
 import { RepoList } from "@/components/dashboard/repo-list";
 import { InsightsPanel } from "@/components/dashboard/insights-panel";
+import { AuroraBackground } from "@/components/effects/aurora";
 
 export default function DashboardPage() {
   return (
     <AuthGuard>
-      <div className="flex h-screen overflow-hidden bg-background">
+      <div className="relative flex h-screen overflow-hidden bg-background">
+        <AuroraBackground />
         <Sidebar />
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="relative z-10 flex min-w-0 flex-1 flex-col">
           <Topbar />
           <main className="flex-1 overflow-y-auto">
-            <div className="mx-auto max-w-[1400px] px-4 py-6 lg:px-6 lg:py-8 space-y-6">
-              <PageHeader />
+            <div className="mx-auto max-w-[1400px] px-4 py-8 lg:px-8 lg:py-12 space-y-8">
+              <Hero />
               <GithubBanner />
 
               {/* Metric cards row */}
@@ -32,7 +34,7 @@ export default function DashboardPage() {
               <InsightsPanel delay={0.15} />
 
               {/* Charts row */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 <div className="lg:col-span-2">
                   <CommitsChart delay={0.2} />
                 </div>
@@ -43,7 +45,7 @@ export default function DashboardPage() {
               <Heatmap delay={0.3} />
 
               {/* Second charts row + leaderboard */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 <div className="lg:col-span-2">
                   <PrIssueChart delay={0.35} />
                 </div>
@@ -51,7 +53,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Bottom row: repo list + activity */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 <div className="lg:col-span-1">
                   <RepoList delay={0.45} />
                 </div>
@@ -60,8 +62,8 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <footer className="pt-4 pb-2 text-center text-[11px] text-muted-foreground">
-                Pulse · Developer Productivity Dashboard · demo data
+              <footer className="pt-6 pb-2 text-center text-[11px] text-muted-foreground/70">
+                Pulse · Crafted with care · {new Date().getFullYear()}
               </footer>
             </div>
           </main>

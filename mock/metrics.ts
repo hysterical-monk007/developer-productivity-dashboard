@@ -1,8 +1,8 @@
 import { sparklines } from "./timeseries";
 
 export type Anomaly = {
-  sigma: number; // signed; positive = above baseline
-  baseline: string; // human-readable baseline window
+  sigma: number;
+  baseline: string;
   kind: "spike" | "dip" | "drift";
 };
 
@@ -11,13 +11,13 @@ export type Metric = {
   label: string;
   value: string;
   sub?: string;
-  delta: number; // signed %
+  delta: number;
   trend: "up" | "down" | "flat";
-  good: "up" | "down"; // which direction is "good"
+  good: "up" | "down";
   sparkline: { i: number; v: number }[];
-  accent: string; // tailwind gradient classes for the glow + icon bg
-  iconColor: string; // tailwind text-* class for the icon
-  sparkColor: string; // hex for the recharts stroke/gradient
+  accent: string;       // gradient classes for the icon backdrop + glow
+  iconColor: string;    // text-* for the icon
+  sparkColor: string;   // hex for Recharts stroke + gradient
   icon: "gitcommit" | "gitpr" | "alertcircle" | "flame" | "folder";
   anomaly?: Anomaly;
 };
@@ -32,9 +32,9 @@ export const metrics: Metric[] = [
     trend: "up",
     good: "up",
     sparkline: sparklines.commits,
-    accent: "from-violet-500/25 to-fuchsia-500/10",
-    iconColor: "text-violet-400",
-    sparkColor: "#a78bfa",
+    accent: "from-emerald-500/25 to-teal-500/10",
+    iconColor: "text-emerald-300",
+    sparkColor: "#34d399",
     icon: "gitcommit",
     anomaly: {
       sigma: 2.3,
@@ -51,9 +51,9 @@ export const metrics: Metric[] = [
     trend: "up",
     good: "up",
     sparkline: sparklines.prs,
-    accent: "from-sky-500/25 to-blue-500/10",
-    iconColor: "text-sky-400",
-    sparkColor: "#38bdf8",
+    accent: "from-rose-500/25 to-coral-500/10",
+    iconColor: "text-rose-300",
+    sparkColor: "#fb7185",
     icon: "gitpr",
   },
   {
@@ -66,7 +66,7 @@ export const metrics: Metric[] = [
     good: "down",
     sparkline: sparklines.issues,
     accent: "from-amber-500/25 to-orange-500/10",
-    iconColor: "text-amber-400",
+    iconColor: "text-amber-300",
     sparkColor: "#fbbf24",
     icon: "alertcircle",
     anomaly: {
@@ -84,9 +84,9 @@ export const metrics: Metric[] = [
     trend: "up",
     good: "up",
     sparkline: sparklines.streak,
-    accent: "from-rose-500/25 to-pink-500/10",
-    iconColor: "text-rose-400",
-    sparkColor: "#fb7185",
+    accent: "from-cyan-500/25 to-teal-500/10",
+    iconColor: "text-cyan-300",
+    sparkColor: "#22d3ee",
     icon: "flame",
     anomaly: {
       sigma: 2.7,
@@ -103,9 +103,9 @@ export const metrics: Metric[] = [
     trend: "flat",
     good: "up",
     sparkline: sparklines.repos,
-    accent: "from-emerald-500/25 to-teal-500/10",
-    iconColor: "text-emerald-400",
-    sparkColor: "#34d399",
+    accent: "from-lime-500/25 to-emerald-500/10",
+    iconColor: "text-lime-300",
+    sparkColor: "#a3e635",
     icon: "folder",
   },
 ];

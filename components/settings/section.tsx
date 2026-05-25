@@ -17,11 +17,11 @@ export function SettingsSection({
     <section
       id={id}
       className={cn(
-        "rounded-xl border border-border bg-card shadow-sm",
+        "glass rounded-2xl scroll-mt-20",
         className
       )}
     >
-      <header className="border-b border-border px-5 py-4">
+      <header className="border-b border-foreground/[0.06] px-5 py-4">
         <h2 className="text-sm font-semibold tracking-tight">{title}</h2>
         {description && (
           <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>

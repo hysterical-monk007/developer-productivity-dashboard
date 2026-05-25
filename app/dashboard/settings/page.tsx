@@ -3,6 +3,7 @@ import { ArrowLeft, User, Palette, Github, Bell } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { AuthGuard } from "@/components/dashboard/auth-guard";
+import { AuroraBackground } from "@/components/effects/aurora";
 import {
   SettingsSection,
   SettingsRow,
@@ -23,9 +24,10 @@ const NAV = [
 export default function SettingsPage() {
   return (
     <AuthGuard>
-      <div className="flex h-screen overflow-hidden bg-background">
+      <div className="relative flex h-screen overflow-hidden bg-background">
+        <AuroraBackground intensity="subtle" />
         <Sidebar />
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="relative z-10 flex min-w-0 flex-1 flex-col">
           <Topbar />
           <main className="flex-1 overflow-y-auto">
             <div className="mx-auto max-w-[1100px] px-4 py-6 lg:px-6 lg:py-8 space-y-6">
