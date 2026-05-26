@@ -17,6 +17,16 @@ import { ChartCard } from "./chart-card";
 import { commitsLast30Days, forecastSummary as mockSummary } from "@/mock/timeseries";
 import { buildCommitsForecast, type CommitPoint } from "@/lib/ml/forecast";
 import { useGithub, getGithubFetchHeaders } from "@/lib/use-github";
+import { cn } from "@/lib/utils";
+
+type Range = "last7d" | "last30d" | "last90d" | "lastYear";
+
+const RANGE_LABEL: Record<Range, { short: string; long: string; days: number }> = {
+  last7d: { short: "7d", long: "Last 7 days", days: 7 },
+  last30d: { short: "30d", long: "Last 30 days", days: 30 },
+  last90d: { short: "90d", long: "Last 90 days", days: 90 },
+  lastYear: { short: "1y", long: "Last year", days: 365 },
+};
 
 const MOCK_TODAY_LABEL = "May 25";
 
@@ -55,49 +65,84 @@ function ChartTooltip({ active, payload, label }: any) {
   );
 }
 
-type LiveData = { iso: string; count: number }[] | null;
+type DailyPoint = { iso: string; count: number };
 
 export function CommitsChart({ delay = 0 }: { delay?: number }) {
   const { linked } = useGithub();
-  const [live, setLive] = useState<LiveData>(null);
+  const [allDays, setAllDays] = useState<DailyPoint[] | null>(null);
+  const [range, setRange] = useState<Range>("last30d");
 
+  // Fetch the full 365-day series from the contributions endpoint once.
+  // We slice client-side to switch ranges without re-fetching.
   useEffect(() => {
     if (!linked) {
-      setLive(null);
+      setAllDays(null);
       return;
     }
     let cancelled = false;
-    fetch("/api/github/events", {
+    fetch("/api/github/contributions", {
       headers: getGithubFetchHeaders(),
       cache: "no-store",
     })
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((json: { commitsDaily?: { iso: string; count: number }[] }) => {
+      .then((json: { cells: { iso: string; count: number }[] }) => {
         if (cancelled) return;
-        if (Array.isArray(json.commitsDaily) && json.commitsDaily.length > 0) {
-          setLive(json.commitsDaily);
+        if (Array.isArray(json.cells) && json.cells.length > 0) {
+          // Filter out future dates the API sometimes returns
+          const today = new Date();
+          const filtered = json.cells
+            .filter((c) => new Date(c.iso) <= today)
+            .sort((a, b) => a.iso.localeCompare(b.iso));
+          setAllDays(filtered);
         }
       })
       .catch(() => {
-        if (!cancelled) setLive(null);
+        if (!cancelled) setAllDays(null);
       });
     return () => {
       cancelled = true;
     };
   }, [linked]);
 
-  const { points, summary, todayLabel, source } = useMemo(() => {
-    if (live && live.length > 0) {
+  const { points, summary, todayLabel, source, totalInWindow } = useMemo(() => {
+    const meta = RANGE_LABEL[range];
+
+    // Live path
+    if (allDays && allDays.length > 0) {
+      const sliced = allDays.slice(-meta.days);
       const todayIso = new Date().toISOString().slice(0, 10);
       const f = buildCommitsForecast(
-        live.map((d) => ({ iso: d.iso, commits: d.count })),
+        sliced.map((d) => ({ iso: d.iso, commits: d.count })),
         todayIso
       );
+      const total = sliced.reduce((s, d) => s + d.count, 0);
       return {
         points: f.points,
         summary: f.summary,
         todayLabel: f.todayLabel,
         source: "live" as const,
+        totalInWindow: total,
+      };
+    }
+
+    // Mock path: we have 30 days. For larger windows, just use what we have.
+    const mockHistory = (commitsLast30Days as CommitPoint[]).filter(
+      (p) => !p.isForecast && p.commits !== null
+    );
+    const sliced = mockHistory.slice(-Math.min(meta.days, mockHistory.length));
+    const todayIso = new Date().toISOString().slice(0, 10);
+    if (sliced.length > 0) {
+      const f = buildCommitsForecast(
+        sliced.map((p) => ({ iso: p.iso, commits: p.commits as number })),
+        todayIso
+      );
+      const total = sliced.reduce((s, p) => s + (p.commits as number), 0);
+      return {
+        points: f.points,
+        summary: f.summary,
+        todayLabel: f.todayLabel,
+        source: "mock" as const,
+        totalInWindow: total,
       };
     }
     return {
@@ -105,34 +150,52 @@ export function CommitsChart({ delay = 0 }: { delay?: number }) {
       summary: mockSummary,
       todayLabel: MOCK_TODAY_LABEL,
       source: "mock" as const,
+      totalInWindow: 0,
     };
-  }, [live]);
+  }, [allDays, range]);
+
+  // X-axis tick density — fewer ticks for wider windows so labels don't overlap.
+  const xInterval =
+    range === "last7d" ? 0 : range === "last30d" ? 3 : range === "last90d" ? 10 : 35;
 
   return (
     <ChartCard
       title="Commits over time"
       subtitle={
         source === "live"
-          ? "Last 30 days from GitHub + 7-day forecast"
-          : "Last 30 days + 7-day forecast"
+          ? `${RANGE_LABEL[range].long} from GitHub + 7-day forecast`
+          : `${RANGE_LABEL[range].long} + 7-day forecast`
       }
       delay={delay}
       toolbar={
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           {source === "live" && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-400">
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-300">
               <Github className="h-2.5 w-2.5" />
               live
             </span>
           )}
-          <span className="hidden md:inline-flex items-center gap-1 rounded-md border border-rose-400/30 bg-rose-400/10 px-1.5 py-0.5 text-[10px] font-semibold text-rose-300">
+          <span className="hidden md:inline-flex items-center gap-1 rounded-md border border-rose-400/30 bg-rose-400/[0.08] px-1.5 py-0.5 text-[10px] font-semibold text-rose-300">
             <Sparkles className="h-2.5 w-2.5" />
             forecast {Math.round(summary.modelAccuracy * 100)}% R²
           </span>
-          <div className="hidden sm:inline-flex items-center gap-1 rounded-md border border-border bg-background/50 p-0.5 text-[11px]">
-            <button className="px-2 py-0.5 text-muted-foreground">7d</button>
-            <button className="rounded bg-accent px-2 py-0.5 font-medium">30d</button>
-            <button className="px-2 py-0.5 text-muted-foreground">90d</button>
+          <div className="inline-flex items-center gap-0.5 rounded-md border border-foreground/[0.08] bg-background/50 p-0.5 text-[11px]">
+            {(["last7d", "last30d", "last90d", "lastYear"] as Range[]).map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setRange(r)}
+                className={cn(
+                  "rounded px-2 py-0.5 font-medium transition-colors",
+                  range === r
+                    ? "bg-accent text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                aria-pressed={range === r}
+              >
+                {RANGE_LABEL[r].short}
+              </button>
+            ))}
           </div>
         </div>
       }
@@ -157,7 +220,7 @@ export function CommitsChart({ delay = 0 }: { delay?: number }) {
               fontSize={11}
               tickLine={false}
               axisLine={false}
-              interval={4}
+              interval={xInterval}
             />
             <YAxis
               stroke="hsl(var(--muted-foreground))"
@@ -222,7 +285,7 @@ export function CommitsChart({ delay = 0 }: { delay?: number }) {
         </ResponsiveContainer>
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-3 text-[11px]">
+      <div className="mt-3 flex items-center justify-between gap-3 text-[11px] flex-wrap">
         <div className="flex items-center gap-3 text-muted-foreground">
           <div className="flex items-center gap-1.5">
             <span className="h-0.5 w-3 rounded-full bg-emerald-400" />
@@ -244,6 +307,16 @@ export function CommitsChart({ delay = 0 }: { delay?: number }) {
           </div>
         </div>
         <div className="text-muted-foreground tabular-nums">
+          {totalInWindow > 0 && (
+            <span>
+              total:{" "}
+              <span className="font-semibold text-foreground tabular-nums">
+                {totalInWindow}
+              </span>{" "}
+              <span className="text-[10px]">in window</span>
+              <span className="mx-1.5 text-muted-foreground/40">·</span>
+            </span>
+          )}
           next 7d:{" "}
           <span className="font-semibold text-foreground">
             ~{summary.next7Total}

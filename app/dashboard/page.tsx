@@ -16,6 +16,7 @@ import { Leaderboard } from "@/components/dashboard/leaderboard";
 import { RepoList } from "@/components/dashboard/repo-list";
 import { InsightsPanel } from "@/components/dashboard/insights-panel";
 import { MLStack } from "@/components/dashboard/ml-stack";
+import { ProjectProfile } from "@/components/dashboard/project-profile";
 import { AuroraBackground } from "@/components/effects/aurora";
 import { ChatDrawer } from "@/components/chat/chat-drawer";
 import { DollyFab } from "@/components/dolly/dolly-fab";
@@ -52,8 +53,11 @@ export default function DashboardPage() {
               {/* AI insights — premium real estate, above the fold */}
               <InsightsPanel delay={0.15} />
 
+              {/* Project profile — automated analysis of what user builds */}
+              <ProjectProfile delay={0.17} />
+
               {/* ML stack — what's actually running */}
-              <MLStack delay={0.18} />
+              <MLStack delay={0.2} />
 
               {/* Charts row */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">

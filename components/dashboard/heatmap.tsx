@@ -12,6 +12,7 @@ import {
 } from "@/mock/heatmap";
 import { useGithub, getGithubFetchHeaders } from "@/lib/use-github";
 import { cn } from "@/lib/utils";
+import { DayDetailModal } from "./day-detail-modal";
 
 const LEVEL_BG = {
   0: "bg-heat-0",
@@ -42,6 +43,7 @@ export function Heatmap({ delay = 0 }: { delay?: number }) {
   const [cells, setCells] = useState<HeatmapCell[]>(mockCells);
   const [total, setTotal] = useState(mockTotal);
   const [source, setSource] = useState<"mock" | "live">("mock");
+  const [openCell, setOpenCell] = useState<HeatmapCell | null>(null);
 
   useEffect(() => {
     if (!linked) {
@@ -111,7 +113,8 @@ export function Heatmap({ delay = 0 }: { delay?: number }) {
             <span className="font-semibold text-foreground tabular-nums">
               {total.toLocaleString()}
             </span>{" "}
-            contributions in the last year
+            contributions in the last year ·{" "}
+            <span className="text-emerald-400/80">click any day for details</span>
           </p>
         </div>
         <div className="hidden md:flex items-center gap-1.5 text-[11px] text-muted-foreground">
@@ -169,9 +172,12 @@ export function Heatmap({ delay = 0 }: { delay?: number }) {
                       return (
                         <Tooltip key={di}>
                           <TooltipTrigger asChild>
-                            <div
+                            <button
+                              type="button"
+                              onClick={() => setOpenCell(cell)}
+                              aria-label={`${cell.count} contributions on ${cell.date} — click for details`}
                               className={cn(
-                                "h-2.5 w-2.5 rounded-sm transition-transform hover:scale-125 hover:ring-1 hover:ring-foreground/40 cursor-pointer",
+                                "h-2.5 w-2.5 rounded-sm transition-transform hover:scale-150 hover:ring-1 hover:ring-foreground/50 focus-visible:scale-150 focus-visible:ring-1 focus-visible:ring-foreground/60 focus-visible:outline-none cursor-pointer",
                                 LEVEL_BG[cell.level]
                               )}
                             />
@@ -181,6 +187,11 @@ export function Heatmap({ delay = 0 }: { delay?: number }) {
                               {cell.count} contribution{cell.count === 1 ? "" : "s"}
                             </span>{" "}
                             <span className="text-muted-foreground">on {cell.date}</span>
+                            {cell.count > 0 && (
+                              <div className="mt-0.5 text-[9px] text-emerald-300">
+                                Click for details →
+                              </div>
+                            )}
                           </TooltipContent>
                         </Tooltip>
                       );
@@ -192,6 +203,13 @@ export function Heatmap({ delay = 0 }: { delay?: number }) {
           </div>
         </TooltipProvider>
       </div>
+
+      <DayDetailModal
+        open={openCell !== null}
+        onClose={() => setOpenCell(null)}
+        iso={openCell?.iso ?? null}
+        contributionCount={openCell?.count ?? 0}
+      />
     </motion.section>
   );
 }
