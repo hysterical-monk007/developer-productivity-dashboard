@@ -37,6 +37,10 @@ export type TeamMember = {
   role: Role;
   // Optional GitHub-derived
   bio?: string;
+  /** Real GitHub avatar URL when the user was added via the live lookup. */
+  avatarUrl?: string;
+  /** True when this member was confirmed to exist on GitHub. */
+  githubVerified?: boolean;
   // Derived/cached
   commits: number;
   prsMerged: number;
@@ -98,6 +102,9 @@ export function inviteMember(input: {
   name: string;
   username: string;
   role: Role;
+  avatarUrl?: string;
+  bio?: string;
+  githubVerified?: boolean;
 }): TeamMember {
   const team = getTeamSync();
   // Generate a stable id from the username
@@ -129,6 +136,9 @@ export function inviteMember(input: {
     avatar: initials,
     avatarColor,
     role: input.role,
+    avatarUrl: input.avatarUrl,
+    bio: input.bio,
+    githubVerified: input.githubVerified,
     commits: 0,
     prsMerged: 0,
     reviewsGiven: 0,
@@ -190,8 +200,7 @@ export function useTeam(): {
   }, []);
 
   const invite = useCallback(
-    (input: { name: string; username: string; role: Role }) =>
-      inviteMember(input),
+    (input: Parameters<typeof inviteMember>[0]) => inviteMember(input),
     []
   );
   const cr = useCallback((id: string, role: Role) => changeRole(id, role), []);

@@ -7,8 +7,10 @@ import {
   MessageSquare,
   Trash2,
   ChevronDown,
+  ShieldCheck,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { MemberAvatar } from "./member-avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -141,13 +143,7 @@ function MemberCard({
 
       <div className="relative flex items-start gap-3">
         <div className="relative shrink-0">
-          <Avatar className="h-10 w-10">
-            <AvatarFallback
-              className={`bg-gradient-to-br ${member.avatarColor} text-white text-xs font-semibold`}
-            >
-              {member.avatar}
-            </AvatarFallback>
-          </Avatar>
+          <MemberAvatar member={member} size={40} />
           <span className="absolute -bottom-0.5 -right-0.5">
             <PresenceDot status={presenceStatus} pulse size="sm" />
           </span>
@@ -163,6 +159,15 @@ function MemberCard({
                 </span>
               )}
             </p>
+            {member.githubVerified && (
+              <span
+                className="inline-flex items-center gap-0.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-300"
+                title="Verified GitHub user"
+              >
+                <ShieldCheck className="h-2.5 w-2.5" />
+                Verified
+              </span>
+            )}
           </div>
           <p className="text-[11px] text-muted-foreground font-mono truncate">
             @{member.username}

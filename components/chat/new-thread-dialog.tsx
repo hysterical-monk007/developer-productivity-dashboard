@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Users, MessageSquare, Check } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { MemberAvatar } from "@/components/team/member-avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTeam, useCurrentMember } from "@/lib/team-store";
@@ -170,13 +170,7 @@ export function NewThreadDialog({
                           : "hover:bg-accent/40"
                       )}
                     >
-                      <Avatar className="h-7 w-7">
-                        <AvatarFallback
-                          className={`bg-gradient-to-br ${m.avatarColor} text-white text-[10px] font-semibold`}
-                        >
-                          {m.avatar}
-                        </AvatarFallback>
-                      </Avatar>
+                      <MemberAvatar member={m} size={28} />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium truncate">{m.name}</p>
                         <p className="text-[10px] text-muted-foreground font-mono truncate">

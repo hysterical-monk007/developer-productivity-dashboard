@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PresenceDot } from "@/components/team/presence-dot";
+import { MemberAvatar } from "@/components/team/member-avatar";
 import {
   useTeam,
   useCurrentMember,
@@ -207,13 +208,7 @@ export function ChatDrawer({
                             <div className="relative shrink-0">
                               {t.kind === "dm" && member ? (
                                 <>
-                                  <Avatar className="h-8 w-8">
-                                    <AvatarFallback
-                                      className={`bg-gradient-to-br ${member.avatarColor} text-white text-[10px] font-semibold`}
-                                    >
-                                      {member.avatar}
-                                    </AvatarFallback>
-                                  </Avatar>
+                                  <MemberAvatar member={member} size={32} />
                                   {otherPresence && (
                                     <span className="absolute -bottom-0.5 -right-0.5">
                                       <PresenceDot
@@ -289,13 +284,7 @@ export function ChatDrawer({
                             if (!m) return null;
                             return (
                               <>
-                                <Avatar className="h-7 w-7">
-                                  <AvatarFallback
-                                    className={`bg-gradient-to-br ${m.avatarColor} text-white text-[10px] font-semibold`}
-                                  >
-                                    {m.avatar}
-                                  </AvatarFallback>
-                                </Avatar>
+                                <MemberAvatar member={m} size={28} />
                                 <div className="min-w-0">
                                   <p className="text-sm font-semibold truncate">
                                     {m.name}
@@ -356,13 +345,11 @@ export function ChatDrawer({
                               )}
                             >
                               {!isMe && author && (
-                                <Avatar className="h-6 w-6 shrink-0">
-                                  <AvatarFallback
-                                    className={`bg-gradient-to-br ${author.avatarColor} text-white text-[9px] font-semibold`}
-                                  >
-                                    {author.avatar}
-                                  </AvatarFallback>
-                                </Avatar>
+                                <MemberAvatar
+                                  member={author}
+                                  size={24}
+                                  className="shrink-0"
+                                />
                               )}
                               <div
                                 className={cn(
