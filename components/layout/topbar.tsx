@@ -13,6 +13,7 @@ import {
   Settings as SettingsIcon,
   Github,
   Link2,
+  MessageSquare,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,12 @@ import { signOut } from "@/lib/auth";
 import { useGithub } from "@/lib/use-github";
 import { currentUser } from "@/mock/user";
 
-export function Topbar() {
+type TopbarProps = {
+  chatUnreadCount?: number;
+  onOpenChat?: () => void;
+};
+
+export function Topbar({ chatUnreadCount = 0, onOpenChat }: TopbarProps = {}) {
   const router = useRouter();
   const { linked, profile, source, disconnect } = useGithub();
 
@@ -88,8 +94,22 @@ export function Topbar() {
         <Button
           variant="ghost"
           size="icon"
+          aria-label="Messages"
+          onClick={onOpenChat}
+          className="relative h-9 w-9 rounded-full border border-foreground/[0.08] bg-background/40 hover:bg-accent"
+        >
+          <MessageSquare className="h-4 w-4" />
+          {chatUnreadCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-500 px-1 text-[9px] font-bold text-emerald-950 ring-2 ring-background">
+              {chatUnreadCount > 9 ? "9+" : chatUnreadCount}
+            </span>
+          )}
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
           aria-label="Notifications"
-          className="relative h-9 w-9 rounded-full border border-border bg-background/40 hover:bg-accent"
+          className="relative h-9 w-9 rounded-full border border-foreground/[0.08] bg-background/40 hover:bg-accent"
         >
           <Bell className="h-4 w-4" />
           <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500 ring-2 ring-background" />

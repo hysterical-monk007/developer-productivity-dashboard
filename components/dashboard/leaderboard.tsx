@@ -3,12 +3,16 @@
 import { motion } from "framer-motion";
 import { Trophy, TrendingUp, TrendingDown } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { team } from "@/mock/team";
+import { team as mockTeam } from "@/mock/team";
+import { useTeam } from "@/lib/team-store";
 import { cn } from "@/lib/utils";
 
 export function Leaderboard({ delay = 0 }: { delay?: number }) {
-  const sorted = [...team].sort((a, b) => b.commits - a.commits);
-  const max = sorted[0].commits;
+  const { team: liveTeam } = useTeam();
+  // Use the live team store when available (so invites show up); fall back to mock.
+  const sourceTeam = liveTeam.length > 0 ? liveTeam : mockTeam;
+  const sorted = [...sourceTeam].sort((a, b) => b.commits - a.commits);
+  const max = sorted[0]?.commits ?? 1;
 
   return (
     <motion.section

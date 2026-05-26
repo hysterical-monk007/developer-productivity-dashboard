@@ -29,7 +29,7 @@ const primaryNav: NavItem[] = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Repositories", href: "/dashboard#repos", icon: GitBranch },
   { label: "Activity", href: "/dashboard#activity", icon: Activity },
-  { label: "Team", href: "/dashboard#team", icon: Users },
+  { label: "Team", href: "/dashboard/team", icon: Users },
   {
     label: "AI Insights",
     href: "/dashboard#insights",

@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { AuthGuard } from "@/components/dashboard/auth-guard";
@@ -14,15 +17,28 @@ import { RepoList } from "@/components/dashboard/repo-list";
 import { InsightsPanel } from "@/components/dashboard/insights-panel";
 import { MLStack } from "@/components/dashboard/ml-stack";
 import { AuroraBackground } from "@/components/effects/aurora";
+import { ChatDrawer } from "@/components/chat/chat-drawer";
+import { useTeam, useCurrentMember } from "@/lib/team-store";
+import { useChat } from "@/lib/chat-store";
 
 export default function DashboardPage() {
+  const { team } = useTeam();
+  const me = useCurrentMember();
+  const meId = me?.id ?? "";
+  const otherIds = team.filter((m) => m.id !== meId).map((m) => m.id);
+  const { unreadCount } = useChat(meId, otherIds);
+  const [chatOpen, setChatOpen] = useState(false);
+
   return (
     <AuthGuard>
       <div className="relative flex h-screen overflow-hidden bg-background">
         <AuroraBackground />
         <Sidebar />
         <div className="relative z-10 flex min-w-0 flex-1 flex-col">
-          <Topbar />
+          <Topbar
+            chatUnreadCount={unreadCount}
+            onOpenChat={() => setChatOpen(true)}
+          />
           <main className="flex-1 overflow-y-auto">
             <div className="mx-auto max-w-[1400px] px-4 py-8 lg:px-8 lg:py-12 space-y-8">
               <Hero />
@@ -72,6 +88,8 @@ export default function DashboardPage() {
             </div>
           </main>
         </div>
+
+        <ChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} />
       </div>
     </AuthGuard>
   );
