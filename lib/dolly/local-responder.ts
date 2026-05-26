@@ -57,12 +57,24 @@ export function generateLocalResponse(
     case "summary": {
       const parts: string[] = [];
       const total30 = ctx.stats.commits30d ?? 0;
-      const repos = ctx.topRepos.slice(0, 3).map((r) => r.name).join(", ");
+      const activeRepos = ctx.topRepos.filter((r) => r.commitsThisWeek > 0);
+      const activeNames = activeRepos.slice(0, 4).map((r) => `**${r.name}**`).join(", ");
+      const totalReposICanSee = ctx.topRepos.length;
       parts.push(
         `Last 30 days: **${total30}** commits, **${ctx.stats.prsMerged}** PRs merged, and a **${ctx.stats.currentStreak}-day** active streak.`
       );
-      if (repos) {
-        parts.push(`Most of the work landed in ${repos}.`);
+      if (activeNames) {
+        parts.push(
+          `Active work landed in ${activeNames}${
+            activeRepos.length > 4
+              ? ` (plus ${activeRepos.length - 4} other repos)`
+              : ""
+          }. I can see ${totalReposICanSee} repos in total across your account.`
+        );
+      } else if (totalReposICanSee > 0) {
+        parts.push(
+          `I can see ${totalReposICanSee} repos on your account — none with commits this week though.`
+        );
       }
       if (ctx.mlSignals.insightsTitles[0]) {
         parts.push(
@@ -116,15 +128,20 @@ export function generateLocalResponse(
       if (ctx.topRepos.length === 0) {
         return "I don't see any repos in your context yet. If you just linked GitHub, give it a moment.";
       }
-      const list = ctx.topRepos
+      const shown = ctx.topRepos.slice(0, 10);
+      const list = shown
         .map(
           (r, i) =>
             `${i + 1}. **${r.name}**${
               r.language ? ` · ${r.language}` : ""
-            } · ${r.commitsThisWeek} commits/wk`
+            }${r.commitsThisWeek > 0 ? ` · ${r.commitsThisWeek} commits/wk` : ""}`
         )
         .join("\n");
-      return `Your most active repos right now:\n\n${list}`;
+      const more =
+        ctx.topRepos.length > 10
+          ? `\n\n…and ${ctx.topRepos.length - 10} more.`
+          : "";
+      return `Across all your projects, here's what I can see:\n\n${list}${more}`;
     }
 
     case "team": {

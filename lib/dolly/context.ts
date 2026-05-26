@@ -151,7 +151,7 @@ export function buildDollyContext(input: ContextBuildInput): DollyContext {
     stats: input.stats,
     productivity,
     recentActivity: classifiedActivity.slice(0, 12),
-    topRepos: input.topRepos.slice(0, 6),
+    topRepos: input.topRepos.slice(0, 20),
     team: input.team,
     mlSignals: {
       insightsTitles: engineOutput.insights.map((i) => i.title),

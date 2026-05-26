@@ -90,8 +90,11 @@ export function useDolly() {
           .catch(() => null),
       ]);
 
+      // Pull up to 20 repos so Dolly knows about every project — not just
+      // the 6 the dashboard widget shows. The long tail gives her enough
+      // context to mention specific projects by name when answering.
       const liveRepos =
-        reposRes?.repos?.slice(0, 6).map((r: { name: string; language: string; commitsThisWeek: number }) => ({
+        reposRes?.repos?.slice(0, 20).map((r: { name: string; language: string; commitsThisWeek: number }) => ({
           name: r.name,
           language: r.language,
           commitsThisWeek: r.commitsThisWeek,
@@ -127,7 +130,7 @@ export function useDolly() {
           mostActiveDay: stats?.mostActiveDay,
         },
         recentActivity: liveActivity,
-        topRepos: liveRepos.length > 0 ? liveRepos : mockRepos.slice(0, 6).map((r) => ({
+        topRepos: liveRepos.length > 0 ? liveRepos : mockRepos.slice(0, 20).map((r) => ({
           name: r.name,
           language: r.language,
           commitsThisWeek: r.commitsThisWeek,

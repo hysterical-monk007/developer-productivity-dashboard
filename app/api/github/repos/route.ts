@@ -24,9 +24,12 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "not_linked" }, { status: 401 });
   }
   try {
+    // Pull a wider sample of repos so Dolly can speak about everything the
+    // user works on (other personal repos, collaborations, org repos). The
+    // UI list still shows the top 6 by recency — the rest are context-only.
     const raw = await ghFetch<GhRepo[]>(
       token,
-      "/user/repos?sort=pushed&per_page=6&affiliation=owner,collaborator"
+      "/user/repos?sort=pushed&per_page=30&affiliation=owner,collaborator,organization_member"
     );
     const repos = raw.map((r) => ({
       id: r.full_name,
