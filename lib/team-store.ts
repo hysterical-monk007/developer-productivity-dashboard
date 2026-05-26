@@ -176,6 +176,99 @@ export function resetTeam() {
   saveToStorage(defaultTeam());
 }
 
+/**
+ * Claim the owner slot for the currently logged-in GitHub user.
+ *
+ * Replaces whoever currently holds the `owner` role (initially the seeded
+ * "Alex Chen") with the real profile of the person using the dashboard.
+ * Keeps their role + commit stats so the leaderboard doesn't lose history.
+ *
+ * Idempotent — if the owner already matches the GitHub login, this is a
+ * no-op. Safe to call on every GitHub-link event.
+ */
+export function claimSelf(profile: {
+  login: string;
+  name: string;
+  avatarUrl?: string;
+  bio?: string;
+}) {
+  const team = getTeamSync();
+  const cleanLogin = profile.login.replace(/^@/, "");
+  // Already claimed? — nothing to do.
+  const owner = team.find((m) => m.role === "owner");
+  if (owner && owner.username === cleanLogin && owner.githubVerified) {
+    return;
+  }
+
+  // Pick the slot to replace: the existing owner if one exists, otherwise
+  // the first member. We preserve their stats + role + joinedAt.
+  const targetIndex = team.findIndex((m) => m.role === "owner");
+  const slot = targetIndex >= 0 ? team[targetIndex] : team[0];
+  if (!slot) {
+    // Empty team — just insert the user as owner.
+    const newId = cleanLogin.toLowerCase().replace(/[^a-z0-9]/g, "-");
+    const initials =
+      profile.name
+        .split(/\s+/)
+        .map((w) => w[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase() || cleanLogin.slice(0, 2).toUpperCase();
+    saveToStorage([
+      {
+        id: newId,
+        name: profile.name,
+        username: cleanLogin,
+        avatar: initials,
+        avatarColor: "from-emerald-500 to-teal-500",
+        role: "owner",
+        avatarUrl: profile.avatarUrl,
+        bio: profile.bio,
+        githubVerified: true,
+        commits: 0,
+        prsMerged: 0,
+        reviewsGiven: 0,
+        delta: 0,
+        joinedAt: new Date().toISOString(),
+      },
+    ]);
+    return;
+  }
+
+  const initials =
+    profile.name
+      .split(/\s+/)
+      .map((w) => w[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || cleanLogin.slice(0, 2).toUpperCase();
+  const newId = cleanLogin.toLowerCase().replace(/[^a-z0-9]/g, "-");
+  // Ensure id uniqueness — if another non-self member already has this id,
+  // keep our slot's old id rather than colliding.
+  const idConflicts = team.some(
+    (m, i) => i !== (targetIndex >= 0 ? targetIndex : 0) && m.id === newId
+  );
+  const finalId = idConflicts ? slot.id : newId;
+
+  const updated: TeamMember = {
+    ...slot,
+    id: finalId,
+    name: profile.name,
+    username: cleanLogin,
+    avatar: initials,
+    avatarUrl: profile.avatarUrl ?? undefined,
+    bio: profile.bio ?? slot.bio,
+    githubVerified: true,
+    // Force role to owner even if the slot was something else
+    role: "owner",
+  };
+
+  const next = team.map((m, i) =>
+    i === (targetIndex >= 0 ? targetIndex : 0) ? updated : m
+  );
+  saveToStorage(next);
+}
+
 /** React hook — subscribes to the local store and re-renders on changes. */
 export function useTeam(): {
   team: TeamMember[];
@@ -211,9 +304,9 @@ export function useTeam(): {
 }
 
 /**
- * Convenience: the "current user" within the team. For the demo this is
- * always whoever owns this browser — by default the seeded owner.
- * Could later be wired to the GitHub-linked identity.
+ * Convenience: the "current user" within the team. Resolves to whichever
+ * member holds the `owner` role (auto-claimed by `claimSelf` once GitHub
+ * is linked). Falls back to the first member if there's no owner.
  */
 export function useCurrentMember(): TeamMember | null {
   const { team } = useTeam();

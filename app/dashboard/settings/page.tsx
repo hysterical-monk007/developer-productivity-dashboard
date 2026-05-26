@@ -12,6 +12,7 @@ import { GithubConnect } from "@/components/settings/github-connect";
 import { AppearanceToggle } from "@/components/settings/appearance-toggle";
 import { NotificationToggles } from "@/components/settings/notification-toggles";
 import { DollyFab } from "@/components/dolly/dolly-fab";
+import { GithubTeamAnchor } from "@/components/team/github-team-anchor";
 import { HAS_OAUTH } from "@/auth";
 import { currentUser } from "@/mock/user";
 
@@ -137,6 +138,7 @@ export default function SettingsPage() {
           </main>
         </div>
         <DollyFab />
+        <GithubTeamAnchor />
       </div>
     </AuthGuard>
   );

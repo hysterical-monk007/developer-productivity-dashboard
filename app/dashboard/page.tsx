@@ -19,6 +19,7 @@ import { MLStack } from "@/components/dashboard/ml-stack";
 import { AuroraBackground } from "@/components/effects/aurora";
 import { ChatDrawer } from "@/components/chat/chat-drawer";
 import { DollyFab } from "@/components/dolly/dolly-fab";
+import { GithubTeamAnchor } from "@/components/team/github-team-anchor";
 import { useTeam, useCurrentMember } from "@/lib/team-store";
 import { useChat } from "@/lib/chat-store";
 
@@ -92,6 +93,7 @@ export default function DashboardPage() {
 
         <ChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} />
         <DollyFab />
+        <GithubTeamAnchor />
       </div>
     </AuthGuard>
   );
