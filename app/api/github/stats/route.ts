@@ -36,25 +36,77 @@ const QUERY = `query Stats($login: String!) {
   }
 }`;
 
-function computeStreak(
-  weeks: { contributionDays: { date: string; contributionCount: number }[] }[]
-): number {
-  // Flatten and reverse so latest day is first
-  const days = weeks
-    .flatMap((w) => w.contributionDays)
-    .filter((d) => new Date(d.date) <= new Date())
-    .sort((a, b) => (a.date > b.date ? -1 : 1));
+type DayPoint = { date: string; count: number };
 
+function flattenDays(
+  weeks: { contributionDays: { date: string; contributionCount: number }[] }[]
+): DayPoint[] {
+  return weeks
+    .flatMap((w) =>
+      w.contributionDays.map((d) => ({
+        date: d.date,
+        count: d.contributionCount,
+      }))
+    )
+    .filter((d) => new Date(d.date) <= new Date())
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function sumLastN(days: DayPoint[], n: number): number {
+  return days.slice(-n).reduce((s, d) => s + d.count, 0);
+}
+
+function computeCurrentStreak(days: DayPoint[]): number {
+  // Walk from the latest day backward. Today can be zero (grace period
+  // for "still alive but haven't pushed yet") — only break the streak when
+  // we hit a zero day after seeing some non-zero days.
   let streak = 0;
-  for (const d of days) {
-    if (d.contributionCount > 0) streak++;
-    else if (streak > 0) break;
-    // If we haven't found any non-zero day yet and we're at "today",
-    // allow today to be zero (streak might still be alive — count from yesterday)
-    else if (streak === 0 && days.indexOf(d) === 0) continue;
-    else break;
+  const reversed = [...days].reverse();
+  for (let i = 0; i < reversed.length; i++) {
+    const d = reversed[i];
+    if (d.count > 0) {
+      streak++;
+    } else if (i === 0) {
+      // Today is zero — grant grace
+      continue;
+    } else {
+      break;
+    }
   }
   return streak;
+}
+
+function computeLongestStreak(days: DayPoint[]): number {
+  let best = 0;
+  let current = 0;
+  for (const d of days) {
+    if (d.count > 0) {
+      current++;
+      if (current > best) best = current;
+    } else {
+      current = 0;
+    }
+  }
+  return best;
+}
+
+function computeMostActiveDayOfWeek(days: DayPoint[]): string {
+  const totals = [0, 0, 0, 0, 0, 0, 0];
+  for (const d of days) {
+    totals[new Date(d.date).getDay()] += d.count;
+  }
+  const max = Math.max(...totals);
+  if (max === 0) return "Wednesday";
+  const idx = totals.indexOf(max);
+  return [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ][idx];
 }
 
 export async function GET(req: Request) {
@@ -90,31 +142,41 @@ export async function GET(req: Request) {
     ]);
 
     const cc = gql.user.contributionsCollection;
+    const days = flattenDays(cc.contributionCalendar.weeks);
 
-    // Total *activity* over the last year — commits, PRs, reviews, issues.
-    // More meaningful than totalCommitContributions for sparse accounts.
-    const totalActivity =
-      cc.totalCommitContributions +
-      cc.totalPullRequestContributions +
-      cc.totalPullRequestReviewContributions +
-      cc.totalIssueContributions;
+    // Multi-window aggregates
+    const last1 = sumLastN(days, 1);
+    const last7 = sumLastN(days, 7);
+    const last30 = sumLastN(days, 30);
+    const last365 = sumLastN(days, 365);
 
-    const streak = computeStreak(cc.contributionCalendar.weeks);
+    const currentStreak = computeCurrentStreak(days);
+    const longestStreak = computeLongestStreak(days);
+    const mostActiveDay = computeMostActiveDayOfWeek(days);
 
-    // Active repos: prefer the actual list count over me.public_repos
-    // (which excludes private + collaborator repos).
-    const reposCount = Array.isArray(repos)
-      ? repos.length
-      : me.public_repos;
+    const reposCount = Array.isArray(repos) ? repos.length : me.public_repos;
 
     const stats = {
-      commits: totalActivity || cc.totalCommitContributions,
+      // New per-window breakdown so the UI can switch ranges without
+      // re-querying GitHub.
+      contributionsByWindow: {
+        today: last1,
+        last7d: last7,
+        last30d: last30,
+        lastYear: last365,
+      },
+      // Backward-compatible flat fields — engine + Hero still use these.
+      commits:
+        last30 ||
+        cc.totalCommitContributions ||
+        cc.totalCommitContributions,
       prsOpen: openPRs.total_count,
       prsMerged: mergedPRs.total_count,
       issuesOpen: openIssues.total_count,
-      streak,
+      streak: currentStreak,
+      longestStreak,
       activeRepos: reposCount,
-      // No historical baseline yet — keep deltas neutral
+      mostActiveDay,
       deltas: {
         commits: 0,
         prs: 0,
@@ -124,7 +186,12 @@ export async function GET(req: Request) {
       },
     };
 
-    console.log(`[github/stats] ${login}:`, stats);
+    console.log(`[github/stats] ${login}:`, {
+      windows: stats.contributionsByWindow,
+      currentStreak,
+      longestStreak,
+      reposCount,
+    });
 
     return NextResponse.json(stats, {
       headers: { "Cache-Control": "no-store" },

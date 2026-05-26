@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useTeam, useCurrentMember } from "@/lib/team-store";
 import { useChat } from "@/lib/chat-store";
 import { ChatDrawer } from "@/components/chat/chat-drawer";
+import { DollyFab } from "@/components/dolly/dolly-fab";
 
 export default function TeamPage() {
   const { team, reset } = useTeam();
@@ -127,6 +128,7 @@ export default function TeamPage() {
           onClose={() => setChatOpen(false)}
           initialThreadId={activeThreadId}
         />
+        <DollyFab />
       </div>
     </AuthGuard>
   );

@@ -10,7 +10,15 @@ export type GithubStats = {
   prsMerged: number;
   issuesOpen: number;
   streak: number;
+  longestStreak?: number;
   activeRepos: number;
+  contributionsByWindow?: {
+    today: number;
+    last7d: number;
+    last30d: number;
+    lastYear: number;
+  };
+  mostActiveDay?: string;
   deltas: {
     commits: number;
     prs: number;
@@ -18,6 +26,15 @@ export type GithubStats = {
     streak: number;
     repos: number;
   };
+};
+
+export type CommitWindow = "today" | "last7d" | "last30d" | "lastYear";
+
+export const COMMIT_WINDOW_LABEL: Record<CommitWindow, string> = {
+  today: "today",
+  last7d: "last 7 days",
+  last30d: "last 30 days",
+  lastYear: "last year",
 };
 
 function formatNumber(n: number): string {
@@ -77,6 +94,7 @@ function overlayMetrics(stats: GithubStats): Metric[] {
 
 export function useGithubStats(): {
   metrics: Metric[];
+  stats: GithubStats | null;
   source: "mock" | "live";
   loading: boolean;
 } {
@@ -112,7 +130,12 @@ export function useGithubStats(): {
   }, [linked]);
 
   if (stats) {
-    return { metrics: overlayMetrics(stats), source: "live", loading: false };
+    return {
+      metrics: overlayMetrics(stats),
+      stats,
+      source: "live",
+      loading: false,
+    };
   }
-  return { metrics: mockMetrics, source: "mock", loading };
+  return { metrics: mockMetrics, stats: null, source: "mock", loading };
 }

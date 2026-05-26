@@ -11,6 +11,7 @@ import {
 import { GithubConnect } from "@/components/settings/github-connect";
 import { AppearanceToggle } from "@/components/settings/appearance-toggle";
 import { NotificationToggles } from "@/components/settings/notification-toggles";
+import { DollyFab } from "@/components/dolly/dolly-fab";
 import { HAS_OAUTH } from "@/auth";
 import { currentUser } from "@/mock/user";
 
@@ -135,6 +136,7 @@ export default function SettingsPage() {
             </div>
           </main>
         </div>
+        <DollyFab />
       </div>
     </AuthGuard>
   );

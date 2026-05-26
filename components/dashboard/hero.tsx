@@ -1,10 +1,24 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, ArrowUpRight, Zap, GitCommit } from "lucide-react";
+import {
+  Sparkles,
+  ArrowUpRight,
+  Zap,
+  GitCommit,
+  Trophy,
+  Flame,
+} from "lucide-react";
 import { currentUser } from "@/mock/user";
 import { useGithub } from "@/lib/use-github";
-import { useGithubStats } from "@/lib/use-github-stats";
+import {
+  useGithubStats,
+  COMMIT_WINDOW_LABEL,
+  type CommitWindow,
+} from "@/lib/use-github-stats";
+import { KeepStreakAlive } from "./keep-streak-alive";
+import { cn } from "@/lib/utils";
 
 function greeting(hour: number): string {
   if (hour < 5) return "Up late";
@@ -14,9 +28,24 @@ function greeting(hour: number): string {
   return "Burning oil";
 }
 
+const WINDOWS: CommitWindow[] = ["today", "last7d", "last30d", "lastYear"];
+const WINDOW_SHORT: Record<CommitWindow, string> = {
+  today: "24h",
+  last7d: "7d",
+  last30d: "30d",
+  lastYear: "1y",
+};
+
+function formatNumber(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 10_000) return `${(n / 1_000).toFixed(1)}k`;
+  if (n >= 1_000) return n.toLocaleString();
+  return n.toString();
+}
+
 export function Hero() {
   const { linked, profile } = useGithub();
-  const { metrics, source } = useGithubStats();
+  const { stats, source } = useGithubStats();
 
   const displayName =
     linked && profile
@@ -30,9 +59,22 @@ export function Hero() {
     day: "numeric",
   });
 
-  // Pick a hero stat — total commits is the canonical "are you shipping?" number
-  const commitsMetric = metrics.find((m) => m.key === "commits");
-  const streakMetric = metrics.find((m) => m.key === "streak");
+  const [range, setRange] = useState<CommitWindow>("last30d");
+  const [streakModalOpen, setStreakModalOpen] = useState(false);
+
+  const liveWindows = stats?.contributionsByWindow;
+  const commitCount = liveWindows
+    ? liveWindows[range]
+    : range === "lastYear"
+      ? 1284
+      : range === "last30d"
+        ? 287
+        : range === "last7d"
+          ? 73
+          : 11;
+
+  const currentStreak = stats?.streak ?? 18;
+  const longestStreak = stats?.longestStreak ?? Math.max(currentStreak, 42);
 
   return (
     <section className="relative">
@@ -55,11 +97,11 @@ export function Hero() {
           </div>
         </div>
 
-        {/* The big editorial headline */}
+        {/* Editorial headline */}
         <div className="space-y-2">
           <h1 className="font-display text-[44px] sm:text-[56px] lg:text-[72px] leading-[0.95] font-semibold tracking-tight">
             <span className="text-foreground">{greeting(now.getHours())},</span>{" "}
-            <span className="bg-gradient-to-br from-emerald-400 via-emerald-300 to-coral-300 bg-clip-text text-transparent"
+            <span
               style={{
                 backgroundImage:
                   "linear-gradient(135deg, hsl(var(--chart-1)) 0%, hsl(var(--chart-4)) 40%, hsl(var(--chart-2)) 100%)",
@@ -73,13 +115,15 @@ export function Hero() {
           </h1>
           <p className="max-w-2xl text-sm sm:text-base text-muted-foreground">
             Here&apos;s how your week is shaping up across every repo, every PR,
-            every reviewer. Pulse is reading {source === "live" ? "your real GitHub activity" : "your demo dataset"} and the AI has noticed
-            a few things worth your attention.
+            every reviewer. Pulse is reading{" "}
+            {source === "live" ? "your real GitHub activity" : "your demo dataset"}{" "}
+            and the AI has noticed a few things worth your attention.
           </p>
         </div>
 
-        {/* Hero stat strip — two large highlight values */}
+        {/* Hero stat strip */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Commits card with window toggle */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -92,48 +136,86 @@ export function Hero() {
                 <GitCommit className="h-5 w-5 text-emerald-300" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs text-muted-foreground font-medium">
-                  Total commits {source === "live" ? "(last year)" : "(this month)"}
-                </p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Commits ({COMMIT_WINDOW_LABEL[range]})
+                  </p>
+                  <div className="inline-flex items-center gap-0.5 rounded-md border border-foreground/[0.08] bg-background/40 p-0.5 text-[10px]">
+                    {WINDOWS.map((w) => (
+                      <button
+                        key={w}
+                        type="button"
+                        onClick={() => setRange(w)}
+                        className={cn(
+                          "rounded px-1.5 py-0.5 font-medium transition-colors",
+                          range === w
+                            ? "bg-accent text-foreground"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        {WINDOW_SHORT[w]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <p className="font-display text-3xl sm:text-4xl font-semibold tracking-tight tabular-nums leading-none mt-1">
-                  {commitsMetric?.value ?? "—"}
+                  {formatNumber(commitCount)}
                 </p>
                 <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1.5">
                   <Sparkles className="h-3 w-3 text-emerald-400" />
-                  AI says: forecast keeps trending up · 91% R²
+                  {commitCount === 0
+                    ? "No commits in this window yet — go make one"
+                    : "AI says: forecast keeps trending up · 91% R²"}
                 </p>
               </div>
             </div>
           </motion.div>
 
-          <motion.div
+          {/* Streak card with current + longest + CTA */}
+          <motion.button
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
-            className="glass rounded-2xl p-4 relative overflow-hidden"
+            whileHover={{ y: -2 }}
+            type="button"
+            onClick={() => setStreakModalOpen(true)}
+            className="glass rounded-2xl p-4 relative overflow-hidden text-left cursor-pointer"
           >
             <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-rose-500/15 blur-3xl" />
             <div className="relative flex items-start gap-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-500/15 ring-1 ring-rose-500/30">
-                <Zap className="h-5 w-5 text-rose-300" />
+                <Flame className="h-5 w-5 text-rose-300" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs text-muted-foreground font-medium">
                   Coding streak
                 </p>
                 <p className="font-display text-3xl sm:text-4xl font-semibold tracking-tight tabular-nums leading-none mt-1">
-                  {streakMetric?.value ?? "0"}{" "}
-                  <span className="text-sm font-sans text-muted-foreground">days</span>
+                  {currentStreak}{" "}
+                  <span className="text-sm font-sans text-muted-foreground">
+                    {currentStreak === 1 ? "day" : "days"}
+                  </span>
                 </p>
-                <button className="mt-2 inline-flex items-center gap-1 text-xs text-rose-300/80 hover:text-rose-200 transition-colors">
-                  Keep it alive
+                <p className="mt-1 text-[10px] text-muted-foreground flex items-center gap-1">
+                  <Trophy className="h-2.5 w-2.5 text-amber-300" />
+                  Best ever: <span className="font-mono tabular-nums">{longestStreak}</span> day{longestStreak === 1 ? "" : "s"}
+                </p>
+                <span className="mt-2 inline-flex items-center gap-1 text-xs text-rose-300/90 hover:text-rose-200 transition-colors">
+                  {currentStreak > 0 ? "Keep it alive" : "Restart it"}
                   <ArrowUpRight className="h-3 w-3" />
-                </button>
+                </span>
               </div>
             </div>
-          </motion.div>
+          </motion.button>
         </div>
       </motion.div>
+
+      <KeepStreakAlive
+        open={streakModalOpen}
+        onClose={() => setStreakModalOpen(false)}
+        currentStreak={currentStreak}
+        longestStreak={longestStreak}
+      />
     </section>
   );
 }
