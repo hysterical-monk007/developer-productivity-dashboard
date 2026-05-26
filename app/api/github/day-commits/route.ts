@@ -1,35 +1,32 @@
 import { NextResponse } from "next/server";
-import { getGithubToken, ghFetch, type GhUser } from "@/lib/github";
+import { getGithubToken, ghFetch, type GhUser, type GhRepo } from "@/lib/github";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type SearchCommitsResponse = {
-  total_count: number;
-  items: {
-    sha: string;
-    commit: {
-      message: string;
-      author: { date: string };
-    };
-    html_url: string;
-    repository: {
-      name: string;
-      full_name: string;
-      html_url: string;
-    };
-  }[];
+type RepoCommit = {
+  sha: string;
+  html_url: string;
+  commit: {
+    message: string;
+    author: { date: string; name?: string };
+  };
 };
 
 /**
- * Fetches commits authored by the logged-in user on a specific date.
+ * Fetch commits authored by the logged-in user on a given day.
  *
- * Uses the GitHub search/commits API:
- *   GET /search/commits?q=author:LOGIN+author-date:YYYY-MM-DD
+ * GitHub's /search/commits endpoint no longer accepts qualifier-only queries
+ * (it returns 422 "Search text is required"). Instead we fan out across the
+ * user's repos and call /repos/{full_name}/commits per repo with the
+ * author + since + until filters.
  *
- * Note: search/commits returns at most 100 results per page. For a single
- * day that's almost always enough. The endpoint also needs the special
- * Accept header for the preview (now standard).
+ * We only query repos whose pushed_at is on or after the requested day —
+ * a repo that wasn't pushed since then can't have a commit dated that day.
+ * That keeps us under the 100-ish-repo ceiling for any reasonable user.
+ *
+ * Parallel requests. Failures per-repo are swallowed so one bad repo doesn't
+ * kill the whole response.
  */
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -46,28 +43,54 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "not_linked" }, { status: 401 });
   }
 
+  const sinceIso = `${date}T00:00:00Z`;
+  const next = new Date(`${date}T00:00:00Z`);
+  next.setUTCDate(next.getUTCDate() + 1);
+  const untilIso = next.toISOString();
+
   try {
     const me = await ghFetch<GhUser>(token, "/user");
-    const q = `author:${me.login}+author-date:${date}`;
-    // sort=author-date desc so latest commit of the day is first
-    const search = await ghFetch<SearchCommitsResponse>(
+
+    const repos = await ghFetch<GhRepo[]>(
       token,
-      `/search/commits?q=${encodeURIComponent(q)}&sort=author-date&order=desc&per_page=50`
+      "/user/repos?per_page=100&sort=pushed&affiliation=owner,collaborator,organization_member"
     );
 
-    const commits = search.items.map((c) => {
-      const firstLine = c.commit.message.split("\n")[0];
-      return {
-        sha: c.sha.slice(0, 7),
-        message: firstLine,
-        repo: c.repository.name,
-        repoFullName: c.repository.full_name,
-        time: c.commit.author.date,
-        url: c.html_url,
-      };
-    });
+    // Only consider repos pushed on or after the requested day.
+    const dayStart = new Date(sinceIso).getTime();
+    const candidates = repos.filter(
+      (r) => new Date(r.pushed_at).getTime() >= dayStart
+    );
 
-    // Aggregate per-repo for the modal summary
+    const results = await Promise.all(
+      candidates.map(async (r) => {
+        try {
+          const commits = await ghFetch<RepoCommit[]>(
+            token,
+            `/repos/${r.full_name}/commits?author=${encodeURIComponent(
+              me.login
+            )}&since=${encodeURIComponent(sinceIso)}&until=${encodeURIComponent(
+              untilIso
+            )}&per_page=50`
+          );
+          return commits.map((c) => ({
+            sha: c.sha.slice(0, 7),
+            message: c.commit.message.split("\n")[0],
+            repo: r.name,
+            repoFullName: r.full_name,
+            time: c.commit.author.date,
+            url: c.html_url,
+          }));
+        } catch {
+          return [];
+        }
+      })
+    );
+
+    const commits = results
+      .flat()
+      .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+
     const perRepo = new Map<string, number>();
     for (const c of commits) {
       perRepo.set(c.repo, (perRepo.get(c.repo) ?? 0) + 1);
@@ -76,12 +99,18 @@ export async function GET(req: Request) {
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count);
 
+    console.log(
+      `[github/day-commits] ${date}: ${commits.length} commits across ${reposSummary.length} repos (scanned ${candidates.length}/${repos.length})`
+    );
+
     return NextResponse.json(
       {
         date,
-        totalCommits: search.total_count,
+        totalCommits: commits.length,
         commits,
         reposSummary,
+        scanned: candidates.length,
+        totalReposChecked: repos.length,
       },
       { headers: { "Cache-Control": "no-store" } }
     );

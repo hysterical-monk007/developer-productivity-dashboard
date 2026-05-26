@@ -294,13 +294,28 @@ function MessageBubble({ msg }: { msg: DollyMessage }) {
           <span
             className={cn(
               "mt-1 inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-medium",
-              msg.source === "ai"
-                ? "border-pink-400/30 bg-pink-400/10 text-pink-300"
-                : "border-foreground/15 bg-background/40 text-muted-foreground"
+              msg.source === "ai" &&
+                "border-pink-400/30 bg-pink-400/10 text-pink-300",
+              msg.source === "ollama" &&
+                "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
+              msg.source === "local" &&
+                "border-foreground/15 bg-background/40 text-muted-foreground"
             )}
           >
             <Bot className="h-2.5 w-2.5" />
-            {msg.source === "ai" ? "Claude · streaming" : "Local responder"}
+            {msg.source === "ai" && "Claude · streaming"}
+            {msg.source === "ollama" &&
+              `Ollama · ${msg.sourceMeta?.model ?? "local"}`}
+            {msg.source === "local" && (
+              <>
+                Local responder
+                {msg.sourceMeta?.fallbackFrom && (
+                  <span className="opacity-70">
+                    · {msg.sourceMeta.fallbackFrom} unavailable
+                  </span>
+                )}
+              </>
+            )}
           </span>
         )}
       </div>

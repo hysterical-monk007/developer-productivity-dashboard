@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, User, Palette, Github, Bell } from "lucide-react";
+import { ArrowLeft, User, Palette, Github, Bell, Sparkles } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { AuthGuard } from "@/components/dashboard/auth-guard";
@@ -11,6 +11,7 @@ import {
 import { GithubConnect } from "@/components/settings/github-connect";
 import { AppearanceToggle } from "@/components/settings/appearance-toggle";
 import { NotificationToggles } from "@/components/settings/notification-toggles";
+import { DollyBackendSelector } from "@/components/settings/dolly-backend";
 import { DollyFab } from "@/components/dolly/dolly-fab";
 import { GithubTeamAnchor } from "@/components/team/github-team-anchor";
 import { HAS_OAUTH } from "@/auth";
@@ -20,6 +21,7 @@ const NAV = [
   { label: "Profile", href: "#profile", Icon: User },
   { label: "Appearance", href: "#appearance", Icon: Palette },
   { label: "GitHub", href: "#github", Icon: Github },
+  { label: "Dolly", href: "#dolly", Icon: Sparkles },
   { label: "Notifications", href: "#notifications", Icon: Bell },
 ];
 
@@ -122,6 +124,15 @@ export default function SettingsPage() {
                     description="Link your GitHub account to see real commits, repos, and contributions."
                   >
                     <GithubConnect oauthEnabled={HAS_OAUTH} />
+                  </SettingsSection>
+
+                  {/* Dolly backend */}
+                  <SettingsSection
+                    id="dolly"
+                    title="Dolly assistant"
+                    description="Choose what powers Dolly. Auto picks the best available backend. Ollama runs entirely offline."
+                  >
+                    <DollyBackendSelector />
                   </SettingsSection>
 
                   {/* Notifications */}

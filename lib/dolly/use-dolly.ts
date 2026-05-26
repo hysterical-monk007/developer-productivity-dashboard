@@ -8,12 +8,14 @@ import { buildDollyContext, type DollyContext } from "./context";
 import { activity as mockActivity, classifyEvent } from "@/mock/activity";
 import { repos as mockRepos } from "@/mock/repos";
 import { commitsLast30Days } from "@/mock/timeseries";
+import { dollyBackendHeaders } from "./backend-prefs";
 
 export type DollyMessage = {
   id: string;
   role: "user" | "assistant";
   text: string;
-  source?: "ai" | "local";
+  source?: "ai" | "ollama" | "local";
+  sourceMeta?: { model?: string; fallbackFrom?: string };
   at: string;
 };
 
@@ -208,7 +210,10 @@ export function useDolly() {
 
         const res = await fetch("/api/dolly", {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: {
+            "content-type": "application/json",
+            ...dollyBackendHeaders(),
+          },
           body: JSON.stringify({
             question: q,
             context: ctx,
@@ -226,7 +231,8 @@ export function useDolly() {
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
-        let source: "ai" | "local" = "local";
+        let source: "ai" | "ollama" | "local" = "local";
+        let sourceMeta: { model?: string; fallbackFrom?: string } | undefined;
 
         while (true) {
           const { value, done } = await reader.read();
@@ -252,6 +258,12 @@ export function useDolly() {
               }
               if (evt.done) {
                 source = evt.source ?? source;
+                if (evt.model || evt.fallbackFrom) {
+                  sourceMeta = {
+                    model: evt.model,
+                    fallbackFrom: evt.fallbackFrom,
+                  };
+                }
               }
             } catch {
               // ignore malformed lines
@@ -261,7 +273,7 @@ export function useDolly() {
 
         setMessages((m) => {
           const next = m.map((msg) =>
-            msg.id === assistantId ? { ...msg, source } : msg
+            msg.id === assistantId ? { ...msg, source, sourceMeta } : msg
           );
           saveHistory(next);
           return next;
