@@ -12,6 +12,7 @@ import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { Leaderboard } from "@/components/dashboard/leaderboard";
 import { RepoList } from "@/components/dashboard/repo-list";
 import { InsightsPanel } from "@/components/dashboard/insights-panel";
+import { MLStack } from "@/components/dashboard/ml-stack";
 import { AuroraBackground } from "@/components/effects/aurora";
 
 export default function DashboardPage() {
@@ -32,6 +33,9 @@ export default function DashboardPage() {
 
               {/* AI insights — premium real estate, above the fold */}
               <InsightsPanel delay={0.15} />
+
+              {/* ML stack — what's actually running */}
+              <MLStack delay={0.18} />
 
               {/* Charts row */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">

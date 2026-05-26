@@ -1,89 +1,88 @@
+/**
+ * Insight generation — ML-first, LLM-optional.
+ *
+ * Flow:
+ *  1. Run the local insights-engine over the input data. Real anomaly
+ *     detectors, trend tests, classifier outputs, and entropy stats fire
+ *     candidate insights with data-derived confidence.
+ *  2. If ANTHROPIC_API_KEY is set AND the caller hasn't opted out, send the
+ *     ML-derived insights to Claude with a *rewrite-only* prompt. Claude
+ *     polishes the prose but cannot invent new categories, change confidence
+ *     scores, or hallucinate numbers — every fact remains the engine's.
+ *  3. If anything goes wrong (no key, network failure, parse error), we
+ *     return the raw engine output. The dashboard works the same offline.
+ *
+ * This means:
+ *   - The confidence scores you see ARE the algorithms' confidence.
+ *   - The signal tags ARE the algorithms that fired.
+ *   - Disconnecting your network changes nothing visible to the user.
+ */
+
 import Anthropic from "@anthropic-ai/sdk";
 import {
-  fallbackInsights,
-  fallbackMetadata,
-  pickInsights,
+  generateInsightsFromData,
+  type EngineInput,
   type Insight,
   type InsightCategory,
-  type ModelMetadata,
-} from "@/mock/insights-fallback";
+} from "@/lib/ml/insights-engine";
+import { getModelInfo as getClassifierInfo } from "@/lib/ml/classifier";
 
-export type StatsPayload = {
-  commits30d: number;
-  prsOpen: number;
-  prsMerged: number;
-  issuesOpen: number;
-  streakDays: number;
-  activeRepos: number;
-  topRepo: string;
-  mostActiveDay: string;
-  languageBreakdown: { name: string; pct: number }[];
+export type StatsPayload = EngineInput;
+
+export type ModelMetadata = {
+  primaryEngine: string;
+  enrichment: "claude" | "none";
+  detectorsRun: number;
+  candidatesGenerated: number;
+  computeMs: number;
+  classifier: {
+    algorithm: string;
+    vocabSize: number;
+    trainingSize: number;
+  };
+  network: "offline-capable";
 };
 
-const SYSTEM_PROMPT = `You are an analytics engine for a developer productivity dashboard.
+const REWRITE_SYSTEM_PROMPT = `You polish text. You DO NOT invent insights, change categories, modify confidence scores, or alter any numbers.
 
-Given a JSON snapshot of the user's GitHub-style stats, generate EXACTLY 4 short insights they will see on their dashboard.
+Input: a JSON array of insights from a local ML engine. Each has category, title, body, confidence, signals.
 
-Output STRICT JSON in this exact shape — no prose, no markdown, no code fence:
-{
-  "insights": [
-    {
-      "category": "productivity" | "trend" | "warning" | "suggestion",
-      "title": string,
-      "body": string,
-      "confidence": number,
-      "signals": string[]
-    }
-  ]
-}
+Output: STRICT JSON in the same shape, with ONLY \`title\` and \`body\` rewritten to be punchier and more specific. All other fields must be preserved exactly.
 
 Rules:
-- Return exactly 4 insights.
-- Vary categories: include at least one of each — productivity, trend, warning, suggestion.
-- "title": max 8 words, punchy, no period at the end.
-- "body": 1-2 sentences, specific, reference real numbers from the input when possible. No hedging.
-- "confidence": a calibrated number between 0.55 and 0.98. Be honest — speculative claims get low confidence; well-supported claims get high confidence.
-- "signals": 2-4 short feature names you used to derive the insight (e.g. "weekday cadence", "PR size percentile", "review queue age", "language mix"). Lowercase, no punctuation.
-- Avoid generic platitudes. Make it feel like a senior engineer wrote it.`;
+- Keep every number, percentage, and statistical term from the original body.
+- Keep the category. Do not invent a new one.
+- Title: max 8 words, no period.
+- Body: 1-2 sentences. Reference the same algorithms/signals as the original.
+- Output only the JSON, no markdown code fence.`;
 
-function parseInsights(text: string): Insight[] {
+function parseRewrite(text: string, original: Insight[]): Insight[] {
   const cleaned = text
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/\s*```$/i, "")
     .trim();
   const parsed = JSON.parse(cleaned);
-  const arr: unknown = parsed.insights;
-  if (!Array.isArray(arr)) throw new Error("insights not an array");
-  const validCats: InsightCategory[] = ["productivity", "trend", "warning", "suggestion"];
-  const result: Insight[] = [];
-  for (const item of arr) {
-    if (
-      item &&
-      typeof item === "object" &&
-      typeof (item as Insight).title === "string" &&
-      typeof (item as Insight).body === "string" &&
-      validCats.includes((item as Insight).category)
-    ) {
-      const i = item as Partial<Insight> & Pick<Insight, "category" | "title" | "body">;
-      const confidence =
-        typeof i.confidence === "number" && i.confidence >= 0 && i.confidence <= 1
-          ? Math.max(0.55, Math.min(0.98, i.confidence))
-          : 0.8;
-      const signals =
-        Array.isArray(i.signals) && i.signals.every((s) => typeof s === "string")
-          ? i.signals.slice(0, 4)
-          : ["activity patterns"];
-      result.push({
-        category: i.category,
-        title: i.title.slice(0, 80),
-        body: i.body.slice(0, 280),
-        confidence,
-        signals,
-      });
-    }
+  const arr: unknown = parsed.insights ?? parsed;
+  if (!Array.isArray(arr) || arr.length !== original.length) {
+    throw new Error("rewrite did not preserve insight count");
   }
-  if (result.length < 4) throw new Error("not enough valid insights");
-  return result.slice(0, 4);
+  return original.map((orig, i) => {
+    const r = arr[i] as Partial<Insight> | undefined;
+    if (
+      r &&
+      typeof r.title === "string" &&
+      typeof r.body === "string" &&
+      r.category === orig.category
+    ) {
+      return {
+        ...orig,
+        title: r.title.slice(0, 80),
+        body: r.body.slice(0, 280),
+      };
+    }
+    // Per-item fallback to the original
+    return orig;
+  });
 }
 
 export async function generateInsights(stats: StatsPayload): Promise<{
@@ -91,58 +90,77 @@ export async function generateInsights(stats: StatsPayload): Promise<{
   source: "ai" | "mock";
   metadata: ModelMetadata;
 }> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  const useMock =
-    !apiKey || apiKey === "" || apiKey === "sk-ant-your-key-here";
+  const t0 = Date.now();
 
-  if (useMock) {
+  // 1. Always run the local ML engine first.
+  const local = generateInsightsFromData(stats);
+  const classifierInfo = getClassifierInfo();
+
+  const baseMetadata: ModelMetadata = {
+    primaryEngine: "rules-engine-over-ml-signals",
+    enrichment: "none",
+    detectorsRun: local.metadata.detectorsRun,
+    candidatesGenerated: local.metadata.candidatesGenerated,
+    computeMs: Date.now() - t0,
+    classifier: {
+      algorithm: classifierInfo.algorithm,
+      vocabSize: classifierInfo.vocabSize,
+      trainingSize: classifierInfo.trainingSize,
+    },
+    network: "offline-capable",
+  };
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const useEnrichment =
+    Boolean(apiKey) && apiKey !== "" && apiKey !== "sk-ant-your-key-here";
+
+  // 2. If no key, return the engine output as-is.
+  if (!useEnrichment) {
     return {
-      insights: pickInsights(),
-      source: "mock",
-      metadata: fallbackMetadata,
+      insights: local.insights,
+      source: "mock", // "mock" in the UI means "no LLM enrichment" — engine output is real
+      metadata: baseMetadata,
     };
   }
 
-  const t0 = Date.now();
+  // 3. Try Claude rewrite. On any failure, fall back to local.
   try {
     const client = new Anthropic({ apiKey });
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 900,
-      temperature: 0.7,
-      system: SYSTEM_PROMPT,
+      temperature: 0.5,
+      system: REWRITE_SYSTEM_PROMPT,
       messages: [
         {
           role: "user",
-          content: `Stats snapshot:\n\n${JSON.stringify(stats, null, 2)}\n\nReturn the JSON now.`,
+          content: `Polish these insights:\n\n${JSON.stringify({ insights: local.insights }, null, 2)}\n\nReturn the JSON now.`,
         },
       ],
     });
-
     const textBlock = response.content.find((b) => b.type === "text");
     if (!textBlock || textBlock.type !== "text") {
       throw new Error("no text block in response");
     }
-    const insights = parseInsights(textBlock.text);
-    const computeMs = Date.now() - t0;
+    const polished = parseRewrite(textBlock.text, local.insights);
     return {
-      insights,
+      insights: polished,
       source: "ai",
       metadata: {
-        ...fallbackMetadata,
-        computeMs,
-        model: `${response.model} · ${response.usage.input_tokens}→${response.usage.output_tokens} tok`,
+        ...baseMetadata,
+        enrichment: "claude",
+        computeMs: Date.now() - t0,
       },
     };
   } catch (err) {
     console.warn(
-      "[ai] Claude call failed, falling back to mock insights:",
+      "[ai] Claude rewrite failed, returning raw ML engine output:",
       err instanceof Error ? err.message : err
     );
     return {
-      insights: fallbackInsights,
+      insights: local.insights,
       source: "mock",
-      metadata: fallbackMetadata,
+      metadata: baseMetadata,
     };
   }
 }

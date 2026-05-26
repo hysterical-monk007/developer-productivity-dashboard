@@ -1,6 +1,9 @@
+import { classifyText } from "@/lib/ml/classifier";
+import type { WorkKind } from "@/lib/ml/classifier";
+
 export type ActivityKind = "commit" | "pr_opened" | "pr_merged" | "issue_opened" | "issue_closed" | "review";
 
-export type WorkKind = "feature" | "bugfix" | "refactor" | "chore" | "docs" | "perf" | "review";
+export type { WorkKind };
 
 export type ActivityEvent = {
   id: string;
@@ -15,55 +18,39 @@ export type ActivityEvent = {
 
 export type ClassifiedEvent = ActivityEvent & {
   workKind: WorkKind;
-  classifierConfidence: number; // 0..1
+  classifierConfidence: number; // softmax probability, 0..1
+  classifierFeatures?: string[]; // top tokens influencing the choice
 };
 
-// Lightweight rule-based classifier — stands in for an ML model. The dashboard
-// surfaces the *output* as if it came from a trained classifier, with a
-// confidence score derived from how unambiguous the signals are.
+/**
+ * Classify an event using the Multinomial Naive Bayes model trained on the
+ * embedded labeled corpus (see lib/ml/classifier.ts). Reviews are pinned to
+ * the "review" class regardless of text — the kind metadata is more reliable
+ * than message content there.
+ */
 export function classifyEvent(event: ActivityEvent): ClassifiedEvent {
-  const t = event.title.toLowerCase();
-
-  // Reviews are pre-categorical
   if (event.kind === "review") {
-    return { ...event, workKind: "review", classifierConfidence: 0.99 };
+    return {
+      ...event,
+      workKind: "review",
+      classifierConfidence: 0.99,
+      classifierFeatures: ["event-kind:review"],
+    };
   }
 
-  // Conventional-commit prefixes — high-confidence signals
-  if (/^(feat|feature)[:(]/.test(t))
-    return { ...event, workKind: "feature", classifierConfidence: 0.97 };
-  if (/^(fix|bugfix)[:(]/.test(t))
-    return { ...event, workKind: "bugfix", classifierConfidence: 0.97 };
-  if (/^refactor[:(]/.test(t))
-    return { ...event, workKind: "refactor", classifierConfidence: 0.96 };
-  if (/^chore[:(]/.test(t))
-    return { ...event, workKind: "chore", classifierConfidence: 0.95 };
-  if (/^docs?[:(]/.test(t))
-    return { ...event, workKind: "docs", classifierConfidence: 0.95 };
-  if (/^perf[:(]/.test(t))
-    return { ...event, workKind: "perf", classifierConfidence: 0.96 };
-  if (/^ui[:(]/.test(t))
-    return { ...event, workKind: "refactor", classifierConfidence: 0.86 };
+  // For issue events, hint the classifier with an extra token so the prior
+  // for bugfix/perf is nudged up.
+  const isIssue =
+    event.kind === "issue_opened" || event.kind === "issue_closed";
+  const text = isIssue ? `${event.title} issue investigation` : event.title;
 
-  // Issue events default to bugfix-ish unless they read like investigations
-  if (event.kind === "issue_opened" || event.kind === "issue_closed") {
-    if (/\b(latency|p99|memory leak|spike|slow)\b/.test(t))
-      return { ...event, workKind: "perf", classifierConfidence: 0.84 };
-    return { ...event, workKind: "bugfix", classifierConfidence: 0.82 };
-  }
-
-  // Free-form titles — keyword heuristics
-  if (/\b(add|introduce|provision|migrate|implement|scaffold)\b/.test(t))
-    return { ...event, workKind: "feature", classifierConfidence: 0.78 };
-  if (/\b(fix|resolve|handle|crash|broken)\b/.test(t))
-    return { ...event, workKind: "bugfix", classifierConfidence: 0.81 };
-  if (/\b(refactor|extract|tighten|cleanup|reorganize)\b/.test(t))
-    return { ...event, workKind: "refactor", classifierConfidence: 0.79 };
-  if (/\b(bump|upgrade|update.*to)\b/.test(t))
-    return { ...event, workKind: "chore", classifierConfidence: 0.86 };
-
-  // Fallback — moderate confidence
-  return { ...event, workKind: "feature", classifierConfidence: 0.62 };
+  const result = classifyText(text);
+  return {
+    ...event,
+    workKind: result.label,
+    classifierConfidence: result.confidence,
+    classifierFeatures: result.topFeatures,
+  };
 }
 
 const actors = {

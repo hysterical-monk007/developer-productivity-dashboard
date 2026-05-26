@@ -15,7 +15,7 @@ import {
 import { Sparkles, Github } from "lucide-react";
 import { ChartCard } from "./chart-card";
 import { commitsLast30Days, forecastSummary as mockSummary } from "@/mock/timeseries";
-import { buildCommitsForecast, type CommitPoint } from "@/lib/forecast";
+import { buildCommitsForecast, type CommitPoint } from "@/lib/ml/forecast";
 import { useGithub, getGithubFetchHeaders } from "@/lib/use-github";
 
 const MOCK_TODAY_LABEL = "May 25";

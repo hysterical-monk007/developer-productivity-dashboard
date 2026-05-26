@@ -138,12 +138,14 @@ export function InsightsPanel({ delay = 0 }: { delay?: number }) {
                     data.source === "ai" ? "bg-emerald-500" : "bg-muted-foreground"
                   )}
                 />
-                {data.source === "ai" ? "Claude" : "Demo"}
+                {data.source === "ai" ? "Claude polished" : "ML engine"}
               </span>
             )}
           </h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Auto-generated from your activity
+            {data?.metadata?.primaryEngine === "rules-engine-over-ml-signals"
+              ? "Computed locally — anomaly, trend, classifier, entropy."
+              : "Auto-generated from your activity"}
           </p>
         </div>
         <button
@@ -157,43 +159,55 @@ export function InsightsPanel({ delay = 0 }: { delay?: number }) {
         </button>
       </header>
 
-      {/* Model metadata strip */}
+      {/* ML pipeline metadata strip */}
       {data && (
-        <div className="relative mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-[10px] text-muted-foreground">
+        <div className="relative mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-foreground/[0.08] bg-background/40 px-3 py-1.5 text-[10px] text-muted-foreground">
           <div className="flex items-center gap-1.5">
-            <Cpu className="h-3 w-3 text-violet-400" />
+            <Cpu className="h-3 w-3 text-emerald-300" />
             <span className="font-medium text-foreground/80">
-              {data.metadata.model}
+              {data.metadata.primaryEngine}
             </span>
           </div>
           <span className="text-muted-foreground/50">·</span>
           <span>
             <span className="tabular-nums text-foreground/80">
-              {data.metadata.commitsAnalyzed.toLocaleString()}
+              {data.metadata.detectorsRun}
             </span>{" "}
-            commits
+            detectors
           </span>
           <span className="text-muted-foreground/50">·</span>
           <span>
             <span className="tabular-nums text-foreground/80">
-              {data.metadata.reposAnalyzed}
+              {data.metadata.candidatesGenerated}
             </span>{" "}
-            repos
+            candidates
           </span>
           <span className="text-muted-foreground/50">·</span>
           <span>
-            <span className="tabular-nums text-foreground/80">
-              {data.metadata.signalLayers}
+            <span className="font-mono text-foreground/80">
+              {data.metadata.classifier?.algorithm ?? "naive-bayes"}
             </span>{" "}
-            signal layers
+            ·{" "}
+            <span className="tabular-nums">
+              {data.metadata.classifier?.vocabSize ?? 0}
+            </span>{" "}
+            vocab
           </span>
           <span className="text-muted-foreground/50">·</span>
           <span>
             <span className="tabular-nums text-foreground/80">
               {data.metadata.computeMs}ms
-            </span>{" "}
-            compute
+            </span>
           </span>
+          {data.metadata.enrichment === "claude" && (
+            <>
+              <span className="text-muted-foreground/50">·</span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-1.5 py-0.5 text-emerald-300">
+                <span className="h-1 w-1 rounded-full bg-emerald-400" />
+                Claude polish on
+              </span>
+            </>
+          )}
         </div>
       )}
 

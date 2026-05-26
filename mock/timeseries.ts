@@ -1,4 +1,5 @@
-import { subDays, addDays, format } from "date-fns";
+import { subDays, format } from "date-fns";
+import { buildCommitsForecast, type CommitPoint } from "@/lib/ml/forecast";
 
 function seededRandom(seed: number) {
   let s = seed;
@@ -10,20 +11,11 @@ function seededRandom(seed: number) {
 
 const rand = seededRandom(42);
 
-export type CommitPoint = {
-  date: string;
-  iso: string;
-  commits: number | null;
-  predicted: number | null;
-  ciLow: number | null;
-  ciHigh: number | null;
-  isForecast: boolean;
-};
-
 const TODAY = new Date("2026-05-25");
+const TODAY_ISO = format(TODAY, "yyyy-MM-dd");
 
-// Commits over 30 days — realistic curve: weekdays > weekends, slight upward trend
-const history: CommitPoint[] = Array.from({ length: 30 }, (_, i) => {
+// 30 days of realistic-looking commit history (seeded, deterministic).
+const history = Array.from({ length: 30 }, (_, i) => {
   const date = subDays(TODAY, 29 - i);
   const dow = date.getDay();
   const isWeekend = dow === 0 || dow === 6;
@@ -32,87 +24,21 @@ const history: CommitPoint[] = Array.from({ length: 30 }, (_, i) => {
   const noise = (rand() - 0.5) * 10;
   const value = Math.max(0, Math.round(base + trend + noise));
   return {
-    date: format(date, "MMM dd"),
     iso: format(date, "yyyy-MM-dd"),
     commits: value,
-    predicted: null,
-    ciLow: null,
-    ciHigh: null,
-    isForecast: false,
   };
 });
 
-// Simple "model": fit a linear regression on the last 14 days, then project
-// the next 7 days with a widening confidence interval.
-function fitAndForecast(): CommitPoint[] {
-  const window = history.slice(-14);
-  const xs = window.map((_, i) => i);
-  const ys = window.map((p) => p.commits ?? 0);
-  const n = xs.length;
-  const meanX = xs.reduce((a, b) => a + b, 0) / n;
-  const meanY = ys.reduce((a, b) => a + b, 0) / n;
-  let num = 0;
-  let den = 0;
-  for (let i = 0; i < n; i++) {
-    num += (xs[i] - meanX) * (ys[i] - meanY);
-    den += (xs[i] - meanX) ** 2;
-  }
-  const slope = den === 0 ? 0 : num / den;
-  const intercept = meanY - slope * meanX;
+// Run the real Holt-Winters forecaster on the mock history at module load.
+const mockForecast = buildCommitsForecast(
+  history.map((h) => ({ iso: h.iso, commits: h.commits })),
+  TODAY_ISO
+);
 
-  // Residual standard deviation
-  let ss = 0;
-  for (let i = 0; i < n; i++) {
-    const yhat = intercept + slope * xs[i];
-    ss += (ys[i] - yhat) ** 2;
-  }
-  const sigma = Math.sqrt(ss / Math.max(1, n - 2));
-
-  // Project 7 days forward, with weekend dampening
-  return Array.from({ length: 7 }, (_, k) => {
-    const date = addDays(TODAY, k + 1);
-    const dow = date.getDay();
-    const isWeekend = dow === 0 || dow === 6;
-    const x = n + k;
-    const weekendFactor = isWeekend ? 0.32 : 1;
-    const point = Math.max(0, (intercept + slope * x) * weekendFactor);
-    // CI widens with horizon: ±(1.96 * sigma * sqrt(1 + k/7))
-    const halfWidth = 1.96 * sigma * Math.sqrt(1 + k / 7) * weekendFactor;
-    return {
-      date: format(date, "MMM dd"),
-      iso: format(date, "yyyy-MM-dd"),
-      commits: null,
-      predicted: Math.round(point),
-      ciLow: Math.max(0, Math.round(point - halfWidth)),
-      ciHigh: Math.round(point + halfWidth),
-      isForecast: true,
-    };
-  });
-}
-
-const forecast = fitAndForecast();
-
-// Bridge point: duplicate the last historical day into the forecast series so
-// the dashed line visually connects to the solid line.
-const bridge: CommitPoint = {
-  ...history[history.length - 1],
-  predicted: history[history.length - 1].commits,
-  ciLow: history[history.length - 1].commits,
-  ciHigh: history[history.length - 1].commits,
-};
-
-export const commitsLast30Days: CommitPoint[] = [
-  ...history,
-  bridge,
-  ...forecast,
-];
-
-export const forecastSummary = {
-  next7Total: forecast.reduce((s, p) => s + (p.predicted ?? 0), 0),
-  ciLowTotal: forecast.reduce((s, p) => s + (p.ciLow ?? 0), 0),
-  ciHighTotal: forecast.reduce((s, p) => s + (p.ciHigh ?? 0), 0),
-  modelAccuracy: 0.91, // pretend 91% R² from backtest
-};
+export type { CommitPoint };
+export const commitsLast30Days: CommitPoint[] = mockForecast.points;
+export const forecastSummary = mockForecast.summary;
+export const mockForecastModel = mockForecast.model;
 
 // PR vs Issue activity, 12 weeks
 export const prIssueWeekly = Array.from({ length: 12 }, (_, i) => {

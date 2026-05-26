@@ -23,6 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { formatDelta } from "@/lib/format";
 import type { Metric } from "@/mock/metrics";
+import { computeMetricAnomaly } from "@/lib/ml/metric-anomalies";
 
 const ICONS: Record<Metric["icon"], LucideIcon> = {
   gitcommit: GitCommit,
@@ -52,7 +53,25 @@ export function MetricCard({ metric, index = 0 }: { metric: Metric; index?: numb
         ? TrendingDown
         : Minus;
 
-  const anomaly = metric.anomaly;
+  // Compute anomaly from the actual time series — runs the modified z-score +
+  // EWMA detector. Falls back to the hardcoded mock anomaly only if no
+  // computed report fires.
+  const computedAnomaly = computeMetricAnomaly(metric);
+  const anomaly = computedAnomaly
+    ? {
+        sigma: computedAnomaly.sigma,
+        baseline: computedAnomaly.baseline,
+        kind: computedAnomaly.kind === "none" ? "drift" : computedAnomaly.kind,
+        algorithms: computedAnomaly.algorithms,
+        confidence: computedAnomaly.confidence,
+      }
+    : metric.anomaly
+      ? {
+          ...metric.anomaly,
+          algorithms: [] as string[],
+          confidence: 0.7,
+        }
+      : null;
   const anomalySign = anomaly && anomaly.sigma > 0 ? "+" : "";
   const anomalyHigh = anomaly && Math.abs(anomaly.sigma) >= 2;
   const anomalyClass = anomaly
@@ -124,13 +143,21 @@ export function MetricCard({ metric, index = 0 }: { metric: Metric; index?: numb
                   <span className="opacity-70">{anomaly.kind}</span>
                 </span>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-[200px]">
+              <TooltipContent side="bottom" className="max-w-[240px]">
                 <div className="font-medium">
                   {Math.abs(anomaly.sigma).toFixed(1)}σ {anomaly.kind} detected
                 </div>
                 <div className="mt-0.5 text-[10px] text-muted-foreground">
                   vs. {anomaly.baseline}
                 </div>
+                {anomaly.algorithms && anomaly.algorithms.length > 0 && (
+                  <div className="mt-1 text-[10px] text-muted-foreground">
+                    Tests fired:{" "}
+                    <span className="font-mono text-foreground/80">
+                      {anomaly.algorithms.join(", ")}
+                    </span>
+                  </div>
+                )}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
